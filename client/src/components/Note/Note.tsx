@@ -169,6 +169,8 @@ const Note: React.FC<NoteProps> = ({ note }) => {
 
     let lastNetworkUpdate = Date.now();
     const networkUpdateThrottle = 50; // Send position updates every 50ms (20 updates/sec)
+    let rafId: number | null = null;
+    let pendingPosition: { x: number; y: number } | null = null;
 
     const handlePointerMove = (e: PointerEvent) => {
       const currentTime = Date.now();
@@ -193,10 +195,25 @@ const Note: React.FC<NoteProps> = ({ note }) => {
         lastTimeRef.current = currentTime;
       }
       
-      setPosition({ x: newX, y: newY });
+      // Store pending position for RAF update
+      pendingPosition = { x: newX, y: newY };
       
-      // Update physics position during drag
-      setNotePosition(note.id, newX, newY);
+      // Update DOM directly for immediate visual feedback
+      if (noteRef.current) {
+        noteRef.current.style.left = `${newX}px`;
+        noteRef.current.style.top = `${newY}px`;
+      }
+      
+      // Batch React state updates with RAF
+      if (rafId === null) {
+        rafId = requestAnimationFrame(() => {
+          if (pendingPosition) {
+            setPosition(pendingPosition);
+            setNotePosition(note.id, pendingPosition.x, pendingPosition.y);
+          }
+          rafId = null;
+        });
+      }
       
       // Throttle network updates to avoid flooding
       if (currentTime - lastNetworkUpdate >= networkUpdateThrottle) {
@@ -210,6 +227,18 @@ const Note: React.FC<NoteProps> = ({ note }) => {
     };
 
     const handlePointerUp = () => {
+      // Cancel any pending RAF
+      if (rafId !== null) {
+        cancelAnimationFrame(rafId);
+        rafId = null;
+      }
+      
+      // Apply final pending position
+      if (pendingPosition) {
+        setPosition(pendingPosition);
+        setNotePosition(note.id, pendingPosition.x, pendingPosition.y);
+      }
+      
       setIsDragging(false);
       
       // Re-enable physics for the note
@@ -239,10 +268,12 @@ const Note: React.FC<NoteProps> = ({ note }) => {
         }, 2000);
       } else {
         // Just send final position
+        const finalX = pendingPosition?.x ?? position.x;
+        const finalY = pendingPosition?.y ?? position.y;
         sendMoveNote({
           noteId: note.id,
-          x: Math.round(position.x),
-          y: Math.round(position.y),
+          x: Math.round(finalX),
+          y: Math.round(finalY),
         });
       }
       
