@@ -230,7 +230,7 @@ export class StateManager {
       content: '',
       backgroundColor: '#FFD60A', // Default yellow
       fontSize: 'medium',
-      isExpanded: false,
+      isExpanded: true, // Start expanded so users can type immediately
       images: [],
       stickers: [],
       createdAt: now,
