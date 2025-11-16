@@ -298,7 +298,8 @@ const Note: React.FC<NoteProps> = ({ note }) => {
     if (contentEditableRef.current) {
       // Use textContent for plain text to prevent XSS
       const newContent = contentEditableRef.current.textContent || '';
-      setContent(newContent);
+      // Don't update local state during typing - it causes cursor jumps
+      // setContent(newContent);
       
       // Debounce content updates (500ms) for real-time collaboration
       if (contentUpdateTimeoutRef.current) {
@@ -322,6 +323,8 @@ const Note: React.FC<NoteProps> = ({ note }) => {
     if (contentEditableRef.current) {
       // Use textContent for plain text to prevent XSS
       const newContent = contentEditableRef.current.textContent || '';
+      // Update local state on blur
+      setContent(newContent);
       if (newContent !== note.content) {
         sendUpdateNote({
           noteId: note.id,
