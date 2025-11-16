@@ -29,7 +29,8 @@ const BoardContent = forwardRef<BoardRef, BoardProps>(({ onZoomChange }, ref) =>
   const { addOrUpdateNote, removeNote, setViewportBounds } = usePhysicsContext();
   const { setTransformState } = useTransform();
   const previousNoteIdsRef = useRef<Set<string>>(new Set());
-  const lastPointerDownRef = useRef<{ x: number; y: number; time: number } | null>(null);
+  const isTransformingRef = useRef(false);
+  const firstClickRef = useRef<{ x: number; y: number; time: number } | null>(null);
 
   // Sync notes with physics engine
   // Use note IDs to avoid re-rendering on every note update
@@ -114,16 +115,37 @@ const BoardContent = forwardRef<BoardRef, BoardProps>(({ onZoomChange }, ref) =>
     },
   }));
 
-  const handleCanvasPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
-    // Track pointer position and time for double-click detection
-    lastPointerDownRef.current = {
-      x: e.clientX,
-      y: e.clientY,
-      time: Date.now(),
-    };
+  const handleCanvasClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    // Track clicks for double-click detection
+    const now = Date.now();
+    const clickPos = { x: e.clientX, y: e.clientY, time: now };
+    
+    if (firstClickRef.current) {
+      const timeSinceFirst = now - firstClickRef.current.time;
+      const dx = Math.abs(e.clientX - firstClickRef.current.x);
+      const dy = Math.abs(e.clientY - firstClickRef.current.y);
+      
+      // Check if this is a valid double-click (within 300ms and <5px movement)
+      if (timeSinceFirst < 300 && dx < 5 && dy < 5) {
+        // This is a double-click - handle it
+        handleDoubleClickCreate(e);
+        firstClickRef.current = null; // Reset
+        return;
+      }
+    }
+    
+    // Store this as the first click
+    firstClickRef.current = clickPos;
+    
+    // Clear after 300ms if no second click
+    setTimeout(() => {
+      if (firstClickRef.current?.time === now) {
+        firstClickRef.current = null;
+      }
+    }, 300);
   };
 
-  const handleCanvasDoubleClick = (e: React.MouseEvent<HTMLDivElement>) => {
+  const handleDoubleClickCreate = (e: React.MouseEvent<HTMLDivElement>) => {
     // Prevent if clicking on a note
     const target = e.target as HTMLElement;
     if (target.closest('[data-note]')) {
@@ -132,16 +154,9 @@ const BoardContent = forwardRef<BoardRef, BoardProps>(({ onZoomChange }, ref) =>
 
     if (!currentBoard) return;
 
-    // Check if pointer moved significantly between clicks
-    if (lastPointerDownRef.current) {
-      const dx = Math.abs(e.clientX - lastPointerDownRef.current.x);
-      const dy = Math.abs(e.clientY - lastPointerDownRef.current.y);
-      const timeSinceDown = Date.now() - lastPointerDownRef.current.time;
-      
-      // Ignore if moved more than 10px or if it's been too long (likely panning)
-      if (dx > 10 || dy > 10 || timeSinceDown > 500) {
-        return;
-      }
+    // Ignore if currently transforming (panning/zooming)
+    if (isTransformingRef.current) {
+      return;
     }
 
     // Get the canvas element and its bounding rect
@@ -165,6 +180,9 @@ const BoardContent = forwardRef<BoardRef, BoardProps>(({ onZoomChange }, ref) =>
   };
 
   const handleTransformChange = (ref: any) => {
+    // Mark that we're transforming
+    isTransformingRef.current = true;
+    
     // Update transform state for notes during transformation
     if (ref?.state && ref?.instance?.wrapperComponent) {
       const rect = ref.instance.wrapperComponent.getBoundingClientRect();
@@ -178,7 +196,12 @@ const BoardContent = forwardRef<BoardRef, BoardProps>(({ onZoomChange }, ref) =>
     }
   };
 
-  const handleZoomChange = (ref: any) => {
+  const handleTransformStop = (ref: any) => {
+    // Clear transforming flag after a short delay
+    setTimeout(() => {
+      isTransformingRef.current = false;
+    }, 100);
+    
     if (onZoomChange && ref.state) {
       onZoomChange(ref.state.scale);
     }
@@ -228,8 +251,8 @@ const BoardContent = forwardRef<BoardRef, BoardProps>(({ onZoomChange }, ref) =>
           disabled: true // We handle double-click manually
         }}
         onTransformed={handleTransformChange}
-        onZoomStop={handleZoomChange}
-        onPanningStop={handleZoomChange}
+        onZoomStop={handleTransformStop}
+        onPanningStop={handleTransformStop}
         centerZoomedOut={false}
       >
         <TransformComponent
@@ -238,8 +261,7 @@ const BoardContent = forwardRef<BoardRef, BoardProps>(({ onZoomChange }, ref) =>
         >
           <div
             className={styles.canvas}
-            onPointerDown={handleCanvasPointerDown}
-            onDoubleClick={handleCanvasDoubleClick}
+            onClick={handleCanvasClick}
           >
             {/* Background grid pattern */}
             <div className={styles.grid} />
