@@ -737,14 +737,22 @@ const Note: React.FC<NoteProps> = ({ note }) => {
             <>
               <div
                 ref={contentEditableRef}
-                contentEditable
+                contentEditable="true"
                 suppressContentEditableWarning
                 onInput={handleContentChange}
                 onBlur={handleContentBlur}
                 onFocus={handleContentFocus}
-                onClick={(e) => e.stopPropagation()}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  // Ensure focus on click
+                  if (contentEditableRef.current) {
+                    contentEditableRef.current.focus();
+                  }
+                }}
                 className={styles.editableContent}
                 data-placeholder="Type here..."
+                role="textbox"
+                aria-multiline="true"
               >
                 {content}
               </div>
