@@ -69,6 +69,18 @@ const BoardContent = forwardRef<BoardRef, BoardProps>(({ onZoomChange }, ref) =>
     };
   }, [currentBoard?.id, removeNote]);
 
+  // Initialize transform state on mount
+  useEffect(() => {
+    if (transformWrapperRef.current?.instance?.transformState) {
+      const state = transformWrapperRef.current.instance.transformState;
+      setTransformState({
+        scale: state.scale,
+        positionX: state.positionX,
+        positionY: state.positionY,
+      });
+    }
+  }, [setTransformState]);
+
   // Expose zoom control methods to parent
   useImperativeHandle(ref, () => ({
     zoomIn: () => {
@@ -127,12 +139,8 @@ const BoardContent = forwardRef<BoardRef, BoardProps>(({ onZoomChange }, ref) =>
     });
   };
 
-  const handleZoomChange = (ref: any) => {
-    if (onZoomChange && ref.state) {
-      onZoomChange(ref.state.scale);
-    }
-    
-    // Update transform state for notes
+  const handleTransformChange = (ref: any) => {
+    // Update transform state for notes during transformation
     if (ref?.state) {
       setTransformState({
         scale: ref.state.scale,
@@ -140,6 +148,15 @@ const BoardContent = forwardRef<BoardRef, BoardProps>(({ onZoomChange }, ref) =>
         positionY: ref.state.positionY,
       });
     }
+  };
+
+  const handleZoomChange = (ref: any) => {
+    if (onZoomChange && ref.state) {
+      onZoomChange(ref.state.scale);
+    }
+    
+    // Update transform state for notes
+    handleTransformChange(ref);
     
     // Update viewport bounds for physics optimization
     updateViewportBounds(ref);
@@ -182,6 +199,7 @@ const BoardContent = forwardRef<BoardRef, BoardProps>(({ onZoomChange }, ref) =>
         doubleClick={{ 
           disabled: true // We handle double-click manually
         }}
+        onTransformed={handleTransformChange}
         onZoomStop={handleZoomChange}
         onPanningStop={handleZoomChange}
         centerZoomedOut={false}
