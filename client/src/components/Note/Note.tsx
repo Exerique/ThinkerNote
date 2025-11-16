@@ -294,18 +294,29 @@ const Note: React.FC<NoteProps> = ({ note }) => {
     };
   }, [isDragging, dragStart, position, note.id, sendMoveNote, applyMomentum, setNoteStatic, setNotePosition]);
 
+  // Keep the DOM contentEditable text in sync with React state when not editing
+  useEffect(() => {
+    if (!contentEditableRef.current || isEditing) {
+      return;
+    }
+
+    if (contentEditableRef.current.textContent !== content) {
+      contentEditableRef.current.textContent = content;
+    }
+  }, [content, isEditing]);
+
   const handleContentChange = useCallback(() => {
     if (contentEditableRef.current) {
       // Use textContent for plain text to prevent XSS
       const newContent = contentEditableRef.current.textContent || '';
-      // Don't update local state during typing - it causes cursor jumps
-      // setContent(newContent);
-      
+      // Keep local state in sync while editing so React re-renders don't wipe the text
+      setContent(newContent);
+
       // Debounce content updates (500ms) for real-time collaboration
       if (contentUpdateTimeoutRef.current) {
         clearTimeout(contentUpdateTimeoutRef.current);
       }
-      
+
       contentUpdateTimeoutRef.current = setTimeout(() => {
         if (newContent !== note.content) {
           sendUpdateNote({
@@ -589,8 +600,7 @@ const Note: React.FC<NoteProps> = ({ note }) => {
     return content.length > 50 ? content.substring(0, 50) + '...' : content;
   };
 
-  // Only count characters if content is not empty or placeholder
-  const characterCount = content && content !== 'Type here...' ? content.length : 0;
+  const characterCount = content.length;
   const isRemoteEditing = note.editingBy && note.editingBy !== websocketService.getUserId();
 
   // Handle keyboard shortcuts for note
@@ -745,9 +755,7 @@ const Note: React.FC<NoteProps> = ({ note }) => {
                 onFocus={handleContentFocus}
                 onClick={(e) => e.stopPropagation()}
                 className={styles.editableContent}
-              >
-                {content || 'Type here...'}
-              </div>
+              />
               
               {/* Character count */}
               <div className={styles.characterCount}>
