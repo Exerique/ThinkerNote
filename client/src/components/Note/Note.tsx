@@ -744,7 +744,10 @@ const Note: React.FC<NoteProps> = ({ note }) => {
                 onFocus={handleContentFocus}
                 onClick={(e) => e.stopPropagation()}
                 className={styles.editableContent}
-              >{content}</div>
+                data-placeholder="Type here..."
+              >
+                {content}
+              </div>
               
               {/* Character count */}
               <div className={styles.characterCount}>
