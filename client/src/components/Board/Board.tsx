@@ -4,6 +4,7 @@ import { AnimatePresence } from 'framer-motion';
 import { useApp } from '../../contexts/AppContext';
 import { useWebSocket } from '../../contexts/WebSocketContext';
 import { PhysicsProvider, usePhysicsContext } from '../../contexts/PhysicsContext';
+import { TransformProvider, useTransform } from '../../contexts/TransformContext';
 import Note from '../Note/Note';
 import ErrorBoundary from '../ErrorBoundary/ErrorBoundary';
 import styles from './Board.module.css';
@@ -26,6 +27,7 @@ const BoardContent = forwardRef<BoardRef, BoardProps>(({ onZoomChange }, ref) =>
   const transformWrapperRef = useRef<any>(null);
   const currentBoard = getCurrentBoard();
   const { addOrUpdateNote, removeNote, setViewportBounds } = usePhysicsContext();
+  const { setTransformState } = useTransform();
   const previousNoteIdsRef = useRef<Set<string>>(new Set());
 
   // Sync notes with physics engine
@@ -130,6 +132,15 @@ const BoardContent = forwardRef<BoardRef, BoardProps>(({ onZoomChange }, ref) =>
       onZoomChange(ref.state.scale);
     }
     
+    // Update transform state for notes
+    if (ref?.state) {
+      setTransformState({
+        scale: ref.state.scale,
+        positionX: ref.state.positionX,
+        positionY: ref.state.positionY,
+      });
+    }
+    
     // Update viewport bounds for physics optimization
     updateViewportBounds(ref);
   };
@@ -172,6 +183,7 @@ const BoardContent = forwardRef<BoardRef, BoardProps>(({ onZoomChange }, ref) =>
           disabled: true // We handle double-click manually
         }}
         onZoomStop={handleZoomChange}
+        onPanningStop={handleZoomChange}
         centerZoomedOut={false}
       >
         <TransformComponent
@@ -215,9 +227,11 @@ const Board = forwardRef<BoardRef, BoardProps>((props, ref) => {
   };
 
   return (
-    <PhysicsProvider enabled={true} onPositionUpdate={handlePhysicsPositionUpdate}>
-      <BoardContent {...props} ref={ref} />
-    </PhysicsProvider>
+    <TransformProvider>
+      <PhysicsProvider enabled={true} onPositionUpdate={handlePhysicsPositionUpdate}>
+        <BoardContent {...props} ref={ref} />
+      </PhysicsProvider>
+    </TransformProvider>
   );
 });
 

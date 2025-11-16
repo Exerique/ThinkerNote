@@ -190,38 +190,87 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
     };
   }, [serverUrl, addNote, updateNote, deleteNote, addBoard, updateBoard, deleteBoard, setConnectionStatus, addToast]);
 
-  const value: WebSocketContextType = {
-    sendCreateNote: (payload) => {
-      // Create a unique key for this note creation request
-      const key = `${payload.boardId}-${payload.x}-${payload.y}`;
-      
-      // Check if we already have a pending creation for this position
-      if (pendingNoteCreationRef.current.has(key)) {
-        return; // Debounce duplicate requests
-      }
-      
-      // Mark as pending
-      pendingNoteCreationRef.current.add(key);
-      
-      // Send the request
-      websocketService.send('note:create', payload);
-      
-      // Clear pending after 500ms
-      setTimeout(() => {
-        pendingNoteCreationRef.current.delete(key);
-      }, 500);
-    },
-    sendUpdateNote: (payload) => websocketService.send('note:update', payload),
-    sendDeleteNote: (payload) => websocketService.send('note:delete', payload),
-    sendMoveNote: (payload) => websocketService.send('note:move', payload),
-    sendEditingStart: (noteId) => websocketService.send('note:editing:start', { noteId, userId: websocketService.getUserId() }),
-    sendEditingEnd: (noteId) => websocketService.send('note:editing:end', { noteId, userId: websocketService.getUserId() }),
-    sendCreateBoard: (payload) => websocketService.send('board:create', payload),
-    sendDeleteBoard: (payload) => websocketService.send('board:delete', payload),
-    sendRenameBoard: (payload) => websocketService.send('board:rename', payload),
-    requestSync: (boardId) => websocketService.requestSync(boardId),
+  const sendCreateNote = React.useCallback((payload: CreateNotePayload) => {
+    // Create a unique key for this note creation request
+    const key = `${payload.boardId}-${payload.x}-${payload.y}`;
+    
+    // Check if we already have a pending creation for this position
+    if (pendingNoteCreationRef.current.has(key)) {
+      return; // Debounce duplicate requests
+    }
+    
+    // Mark as pending
+    pendingNoteCreationRef.current.add(key);
+    
+    // Send the request
+    websocketService.send('note:create', payload);
+    
+    // Clear pending after 500ms
+    setTimeout(() => {
+      pendingNoteCreationRef.current.delete(key);
+    }, 500);
+  }, []);
+
+  const sendUpdateNote = React.useCallback((payload: UpdateNotePayload) => {
+    websocketService.send('note:update', payload);
+  }, []);
+
+  const sendDeleteNote = React.useCallback((payload: DeleteNotePayload) => {
+    websocketService.send('note:delete', payload);
+  }, []);
+
+  const sendMoveNote = React.useCallback((payload: MoveNotePayload) => {
+    websocketService.send('note:move', payload);
+  }, []);
+
+  const sendEditingStart = React.useCallback((noteId: string) => {
+    websocketService.send('note:editing:start', { noteId, userId: websocketService.getUserId() });
+  }, []);
+
+  const sendEditingEnd = React.useCallback((noteId: string) => {
+    websocketService.send('note:editing:end', { noteId, userId: websocketService.getUserId() });
+  }, []);
+
+  const sendCreateBoard = React.useCallback((payload: CreateBoardPayload) => {
+    websocketService.send('board:create', payload);
+  }, []);
+
+  const sendDeleteBoard = React.useCallback((payload: DeleteBoardPayload) => {
+    websocketService.send('board:delete', payload);
+  }, []);
+
+  const sendRenameBoard = React.useCallback((payload: RenameBoardPayload) => {
+    websocketService.send('board:rename', payload);
+  }, []);
+
+  const requestSyncCallback = React.useCallback((boardId: string) => {
+    websocketService.requestSync(boardId);
+  }, []);
+
+  const value: WebSocketContextType = React.useMemo(() => ({
+    sendCreateNote,
+    sendUpdateNote,
+    sendDeleteNote,
+    sendMoveNote,
+    sendEditingStart,
+    sendEditingEnd,
+    sendCreateBoard,
+    sendDeleteBoard,
+    sendRenameBoard,
+    requestSync: requestSyncCallback,
     isConnected: websocketService.isConnected(),
-  };
+  }), [
+    sendCreateNote,
+    sendUpdateNote,
+    sendDeleteNote,
+    sendMoveNote,
+    sendEditingStart,
+    sendEditingEnd,
+    sendCreateBoard,
+    sendDeleteBoard,
+    sendRenameBoard,
+    requestSyncCallback,
+  ]);
 
   return (
     <WebSocketContext.Provider value={value}>

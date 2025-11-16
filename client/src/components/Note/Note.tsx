@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Note as NoteType, Sticker } from '../../../../shared/src/types';
 import { useWebSocket } from '../../contexts/WebSocketContext';
 import { usePhysicsContext } from '../../contexts/PhysicsContext';
+import { useTransform } from '../../contexts/TransformContext';
 import { useApp } from '../../contexts/AppContext';
 import { websocketService } from '../../services/websocket';
 import Tooltip from '../Tooltip/Tooltip';
@@ -47,6 +48,7 @@ const STICKER_EMOJIS = [
 const Note: React.FC<NoteProps> = ({ note }) => {
   const { sendUpdateNote, sendDeleteNote, sendMoveNote, sendEditingStart, sendEditingEnd } = useWebSocket();
   const { applyMomentum, setNoteStatic, setNotePosition } = usePhysicsContext();
+  const { screenToBoard } = useTransform();
   const { addToast } = useApp();
   const [isExpanded, setIsExpanded] = useState(note.isExpanded);
   const [isDragging, setIsDragging] = useState(false);
@@ -138,9 +140,12 @@ const Note: React.FC<NoteProps> = ({ note }) => {
     }
 
     setIsDragging(true);
+    
+    // Convert screen coordinates to board coordinates
+    const boardPos = screenToBoard(e.clientX, e.clientY);
     setDragStart({
-      x: e.clientX - position.x,
-      y: e.clientY - position.y,
+      x: boardPos.x - position.x,
+      y: boardPos.y - position.y,
     });
     
     // Make note static in physics world during drag
@@ -169,8 +174,10 @@ const Note: React.FC<NoteProps> = ({ note }) => {
       const currentTime = Date.now();
       const deltaTime = currentTime - lastTimeRef.current;
       
-      const newX = e.clientX - dragStart.x;
-      const newY = e.clientY - dragStart.y;
+      // Convert screen coordinates to board coordinates
+      const boardPos = screenToBoard(e.clientX, e.clientY);
+      const newX = boardPos.x - dragStart.x;
+      const newY = boardPos.y - dragStart.y;
       
       // Calculate velocity for momentum
       if (deltaTime > 0 && deltaTime < 100) { // Ignore large time gaps
