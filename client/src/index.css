@@ -1,0 +1,148 @@
+/* Global Styles and Theme Variables */
+
+:root {
+  /* macOS Tahoe Color Palette */
+  --color-background: #F5F5F7;
+  --color-canvas: #FFFFFF;
+  --color-accent: #007AFF;
+  --color-text-primary: #1D1D1F;
+  --color-text-secondary: #86868B;
+  
+  /* Note Colors */
+  --color-yellow: #FFD60A;
+  --color-orange: #FF9F0A;
+  --color-red: #FF453A;
+  --color-pink: #FF375F;
+  --color-purple: #BF5AF2;
+  --color-blue: #0A84FF;
+  --color-teal: #5AC8FA;
+  --color-green: #32D74B;
+  --color-gray: #E5E5EA;
+  --color-white: #FFFFFF;
+  
+  /* Spacing (8pt grid) */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+  
+  /* Border Radius */
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 14px;
+  
+  /* Typography */
+  --font-size-sm: 13px;
+  --font-size-md: 15px;
+  --font-size-lg: 17px;
+  --line-height: 1.47;
+  
+  /* Shadows */
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.06);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.12), 0 2px 4px rgba(0, 0, 0, 0.08);
+  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.16), 0 4px 8px rgba(0, 0, 0, 0.12);
+  
+  /* Transitions */
+  --transition-fast: 100ms ease-out;
+  --transition-normal: 200ms cubic-bezier(0.4, 0.0, 0.2, 1);
+  --transition-slow: 300ms cubic-bezier(0.4, 0.0, 0.2, 1);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: var(--color-background);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-md);
+  line-height: var(--line-height);
+}
+
+#root {
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* Utility Classes */
+.button-primary {
+  background: var(--color-accent);
+  color: #FFFFFF;
+  border: none;
+  border-radius: var(--radius-md);
+  padding: var(--spacing-sm) var(--spacing-md);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition-normal);
+}
+
+.button-primary:hover {
+  filter: brightness(110%);
+}
+
+.button-primary:active {
+  transform: scale(0.95);
+}
+
+.button-secondary {
+  background: rgba(0, 0, 0, 0.05);
+  color: var(--color-text-primary);
+  border: none;
+  border-radius: var(--radius-md);
+  padding: var(--spacing-sm) var(--spacing-md);
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+  transition: var(--transition-normal);
+}
+
+.button-secondary:hover {
+  background: rgba(0, 0, 0, 0.08);
+}
+
+.button-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: var(--transition-normal);
+}
+
+.button-icon:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.button-icon:active {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+/* Scrollbar Styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.3);
+}

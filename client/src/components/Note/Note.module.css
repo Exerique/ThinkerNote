@@ -1,0 +1,564 @@
+.note {
+  position: absolute;
+  min-width: 240px;
+  min-height: 160px;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(20px) saturate(180%);
+  border: 0.5px solid rgba(0, 0, 0, 0.04);
+  border-radius: 14px;
+  padding: 16px;
+  box-shadow: 
+    0 2px 8px rgba(0, 0, 0, 0.08),
+    0 1px 2px rgba(0, 0, 0, 0.06);
+  cursor: grab;
+  transition: box-shadow 200ms cubic-bezier(0.4, 0.0, 0.2, 1);
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  outline: none;
+}
+
+.note:focus-visible {
+  outline: 3px solid rgba(0, 122, 255, 0.3);
+  outline-offset: 2px;
+}
+
+.note:hover {
+  box-shadow: 
+    0 4px 16px rgba(0, 0, 0, 0.12),
+    0 2px 4px rgba(0, 0, 0, 0.08);
+}
+
+.note.dragging {
+  cursor: grabbing;
+  box-shadow: 
+    0 8px 32px rgba(0, 0, 0, 0.16),
+    0 4px 8px rgba(0, 0, 0, 0.12);
+  z-index: 100;
+}
+
+.note.collapsed {
+  overflow: hidden;
+}
+
+.note.expanded {
+  min-height: 200px;
+}
+
+/* Header */
+.header {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  height: 32px;
+  margin-bottom: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.headerButtons {
+  display: flex;
+  gap: 4px;
+}
+
+.iconButton {
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 200ms cubic-bezier(0.4, 0.0, 0.2, 1);
+  outline: none;
+}
+
+.iconButton:hover {
+  background: rgba(0, 0, 0, 0.05);
+  transform: scale(1.05);
+}
+
+.iconButton:active {
+  background: rgba(0, 0, 0, 0.1);
+  transform: scale(0.95);
+}
+
+.iconButton:focus-visible {
+  outline: 2px solid rgba(0, 122, 255, 0.5);
+  outline-offset: 1px;
+}
+
+.deleteButton {
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 300;
+  color: #FF453A;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 200ms cubic-bezier(0.4, 0.0, 0.2, 1);
+  outline: none;
+}
+
+.deleteButton:hover {
+  background: rgba(255, 69, 58, 0.1);
+  transform: scale(1.05);
+}
+
+.deleteButton:active {
+  background: rgba(255, 69, 58, 0.2);
+  transform: scale(0.95);
+}
+
+.deleteButton:focus-visible {
+  outline: 2px solid rgba(255, 69, 58, 0.5);
+  outline-offset: 1px;
+}
+
+/* Content */
+.content {
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif;
+  line-height: 1.47;
+  color: #1D1D1F;
+  word-wrap: break-word;
+  flex: 1;
+  position: relative;
+}
+
+.preview {
+  font-size: 15px;
+  opacity: 0.7;
+  cursor: pointer;
+}
+
+.editableContent {
+  outline: none;
+  min-height: 60px;
+  white-space: pre-wrap;
+  cursor: text;
+}
+
+.editableContent:empty:before {
+  content: 'Type here...';
+  color: rgba(29, 29, 31, 0.4);
+}
+
+.characterCount {
+  margin-top: 8px;
+  font-size: 11px;
+  color: rgba(29, 29, 31, 0.5);
+  text-align: right;
+}
+
+/* Images */
+.images {
+  margin-top: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.image {
+  border-radius: 8px;
+  object-fit: cover;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+/* Stickers */
+.stickers {
+  position: relative;
+  margin-top: 12px;
+  min-height: 60px;
+}
+
+.sticker {
+  position: absolute;
+  cursor: move;
+  user-select: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.sticker:hover .stickerControls {
+  opacity: 1;
+}
+
+.stickerControls {
+  display: flex;
+  gap: 2px;
+  opacity: 0;
+  transition: opacity 150ms ease;
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 6px;
+  padding: 2px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.stickerButton {
+  width: 20px;
+  height: 20px;
+  border: none;
+  background: transparent;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 150ms ease;
+}
+
+.stickerButton:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+/* Editing Indicator */
+.editingIndicator {
+  position: absolute;
+  top: -30px;
+  left: 0;
+  z-index: 10;
+}
+
+.editingBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  background: rgba(10, 132, 255, 0.9);
+  color: white;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* Upload Progress */
+.uploadProgress {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px) saturate(180%);
+  padding: 16px;
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.16);
+  z-index: 20;
+}
+
+/* Customization Panel */
+.customizationPanel,
+.stickerLibrary {
+  position: absolute;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(40px) saturate(180%);
+  border: 0.5px solid rgba(0, 0, 0, 0.06);
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 
+    0 8px 32px rgba(0, 0, 0, 0.12),
+    0 2px 8px rgba(0, 0, 0, 0.08);
+  z-index: 1000;
+  min-width: 200px;
+}
+
+.panelHeader {
+  font-size: 15px;
+  font-weight: 600;
+  color: #1D1D1F;
+  margin-bottom: 12px;
+}
+
+.section {
+  margin-bottom: 16px;
+}
+
+.section:last-child {
+  margin-bottom: 0;
+}
+
+.sectionTitle {
+  font-size: 13px;
+  font-weight: 500;
+  color: #86868B;
+  margin-bottom: 8px;
+}
+
+.colorGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+.colorButton {
+  width: 40px;
+  height: 40px;
+  border: 2px solid rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 200ms cubic-bezier(0.4, 0.0, 0.2, 1);
+}
+
+.colorButton:hover {
+  transform: scale(1.1);
+  border-color: rgba(0, 0, 0, 0.2);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.colorButton:active {
+  transform: scale(0.95);
+}
+
+.fontSizeButtons {
+  display: flex;
+  gap: 8px;
+}
+
+.fontSizeButton {
+  flex: 1;
+  padding: 8px 12px;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  background: rgba(0, 0, 0, 0.02);
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #1D1D1F;
+  cursor: pointer;
+  transition: all 200ms cubic-bezier(0.4, 0.0, 0.2, 1);
+}
+
+.fontSizeButton:hover {
+  background: rgba(0, 0, 0, 0.05);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.fontSizeButton:active {
+  transform: translateY(0);
+}
+
+.fontSizeButton.active {
+  background: #007AFF;
+  color: white;
+  border-color: #007AFF;
+}
+
+/* Sticker Library */
+.stickerGrid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 8px;
+}
+
+.stickerOption {
+  width: 44px;
+  height: 44px;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  background: rgba(0, 0, 0, 0.02);
+  border-radius: 8px;
+  font-size: 24px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 200ms cubic-bezier(0.4, 0.0, 0.2, 1);
+}
+
+.stickerOption:hover {
+  transform: scale(1.15) rotate(5deg);
+  background: rgba(0, 0, 0, 0.05);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.stickerOption:active {
+  transform: scale(0.95) rotate(0deg);
+}
+
+/* Delete Dialog */
+.deleteDialog {
+  position: absolute;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(40px) saturate(180%);
+  border: 0.5px solid rgba(0, 0, 0, 0.06);
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 
+    0 8px 32px rgba(0, 0, 0, 0.12),
+    0 2px 8px rgba(0, 0, 0, 0.08);
+  z-index: 1000;
+  min-width: 200px;
+}
+
+.dialogText {
+  font-size: 15px;
+  font-weight: 500;
+  color: #1D1D1F;
+  margin-bottom: 12px;
+}
+
+.dialogButtons {
+  display: flex;
+  gap: 8px;
+}
+
+.cancelButton,
+.confirmButton {
+  flex: 1;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 150ms ease;
+}
+
+.cancelButton {
+  background: rgba(0, 0, 0, 0.05);
+  color: #1D1D1F;
+}
+
+.cancelButton:hover {
+  background: rgba(0, 0, 0, 0.08);
+}
+
+.confirmButton {
+  background: #FF453A;
+  color: white;
+}
+
+.confirmButton:hover {
+  background: #FF3B30;
+}
+
+.confirmButton:active {
+  transform: scale(0.95);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .note {
+    min-width: 200px;
+    min-height: 140px;
+  }
+
+  .customizationPanel,
+  .stickerLibrary {
+    position: fixed;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%) !important;
+    max-width: 90vw;
+    max-height: 80vh;
+    overflow-y: auto;
+  }
+
+  .deleteDialog {
+    position: fixed;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%) !important;
+    max-width: 90vw;
+  }
+}
+
+@media (max-width: 480px) {
+  .note {
+    min-width: 180px;
+    min-height: 120px;
+    padding: 12px;
+  }
+
+  .header {
+    height: 28px;
+    margin-bottom: 6px;
+    padding-bottom: 6px;
+  }
+
+  .iconButton,
+  .deleteButton {
+    width: 32px;
+    height: 32px;
+    font-size: 16px;
+  }
+
+  .content {
+    font-size: 14px;
+  }
+
+  .editableContent {
+    min-height: 40px;
+  }
+
+  .characterCount {
+    font-size: 10px;
+  }
+
+  .colorGrid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+  }
+
+  .colorButton {
+    width: 36px;
+    height: 36px;
+  }
+
+  .stickerGrid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+  }
+
+  .stickerOption {
+    width: 40px;
+    height: 40px;
+    font-size: 20px;
+  }
+}
+
+/* Touch device optimizations */
+@media (hover: none) and (pointer: coarse) {
+  .note {
+    cursor: default;
+  }
+
+  .note.dragging {
+    cursor: default;
+  }
+
+  .iconButton,
+  .deleteButton {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .colorButton {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .stickerOption {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .fontSizeButton {
+    min-height: 44px;
+  }
+
+  /* Make sticker controls always visible on touch devices */
+  .stickerControls {
+    opacity: 1;
+  }
+}

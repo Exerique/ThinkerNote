@@ -1,0 +1,49 @@
+.tooltip {
+  position: fixed;
+  z-index: 10000;
+  pointer-events: none;
+  transform: translateX(-50%);
+}
+
+.tooltip.top {
+  transform: translate(-50%, calc(-100% - 8px));
+}
+
+.tooltip.bottom {
+  transform: translate(-50%, 8px);
+}
+
+.tooltip.left {
+  transform: translate(calc(-100% - 8px), -50%);
+}
+
+.tooltip.right {
+  transform: translate(8px, -50%);
+}
+
+.content {
+  background: rgba(29, 29, 31, 0.95);
+  backdrop-filter: blur(20px) saturate(180%);
+  color: #fff;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.shortcut {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 6px;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  font-family: 'SF Mono', 'Monaco', 'Courier New', monospace;
+  letter-spacing: 0.5px;
+}

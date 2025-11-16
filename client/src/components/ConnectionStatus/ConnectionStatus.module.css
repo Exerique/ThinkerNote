@@ -1,0 +1,42 @@
+.connectionStatus {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif;
+}
+
+.indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.text {
+  color: #86868B;
+}
+
+.connected .indicator {
+  background: #32D74B;
+}
+
+.reconnecting .indicator {
+  background: #FF9F0A;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+.disconnected .indicator {
+  background: #FF453A;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}

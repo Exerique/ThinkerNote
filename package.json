@@ -1,0 +1,20 @@
+{
+  "name": "collaborative-note-board",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "client",
+    "server",
+    "shared"
+  ],
+  "scripts": {
+    "install:all": "npm install",
+    "dev:client": "npm run dev --workspace=client",
+    "dev:server": "npm run dev --workspace=server",
+    "dev": "npm run dev:server & npm run dev:client",
+    "build:shared": "npm run build --workspace=shared",
+    "build:client": "npm run build --workspace=client",
+    "build:server": "npm run build --workspace=server",
+    "build": "npm run build:shared && npm run build:server && npm run build:client"
+  }
+}
