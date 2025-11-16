@@ -77,8 +77,9 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
     };
 
     const handleNoteUpdate = (message: WSMessage) => {
-      const { noteId, updates } = message.payload as UpdateNotePayload;
-      updateNote(noteId, updates);
+      // Server sends the full updated note
+      const note = message.payload as Note;
+      updateNote(note.id, note);
     };
 
     const handleNoteDelete = (message: WSMessage) => {
@@ -105,8 +106,9 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
     };
 
     const handleBoardRename = (message: WSMessage) => {
-      const { boardId, name } = message.payload as RenameBoardPayload;
-      updateBoard(boardId, { name });
+      // Server sends the full updated board
+      const board = message.payload as Board;
+      updateBoard(board.id, { name: board.name });
     };
 
     const handleEditingStart = (message: WSMessage) => {

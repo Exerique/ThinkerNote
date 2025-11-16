@@ -89,12 +89,13 @@ class WebSocketService {
     };
 
     Object.entries(eventMappings).forEach(([serverEvent, messageType]) => {
-      this.socket!.on(serverEvent, (payload: any) => {
+      this.socket!.on(serverEvent, (serverMessage: any) => {
+        // Server sends a full WSMessage object, extract the actual payload
         const message: WSMessage = {
           type: messageType,
-          payload,
-          timestamp: Date.now(),
-          userId: payload.userId || 'unknown',
+          payload: serverMessage.payload, // Extract the actual payload from server message
+          timestamp: serverMessage.timestamp || Date.now(),
+          userId: serverMessage.userId || 'unknown',
         };
         this.handleMessage(message);
       });

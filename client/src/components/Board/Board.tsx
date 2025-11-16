@@ -71,12 +71,15 @@ const BoardContent = forwardRef<BoardRef, BoardProps>(({ onZoomChange }, ref) =>
 
   // Initialize transform state on mount
   useEffect(() => {
-    if (transformWrapperRef.current?.instance?.transformState) {
+    if (transformWrapperRef.current?.instance?.transformState && transformWrapperRef.current?.instance?.wrapperComponent) {
       const state = transformWrapperRef.current.instance.transformState;
+      const rect = transformWrapperRef.current.instance.wrapperComponent.getBoundingClientRect();
       setTransformState({
         scale: state.scale,
         positionX: state.positionX,
         positionY: state.positionY,
+        offsetX: rect.left,
+        offsetY: rect.top,
       });
     }
   }, [setTransformState]);
@@ -141,11 +144,14 @@ const BoardContent = forwardRef<BoardRef, BoardProps>(({ onZoomChange }, ref) =>
 
   const handleTransformChange = (ref: any) => {
     // Update transform state for notes during transformation
-    if (ref?.state) {
+    if (ref?.state && ref?.instance?.wrapperComponent) {
+      const rect = ref.instance.wrapperComponent.getBoundingClientRect();
       setTransformState({
         scale: ref.state.scale,
         positionX: ref.state.positionX,
         positionY: ref.state.positionY,
+        offsetX: rect.left,
+        offsetY: rect.top,
       });
     }
   };

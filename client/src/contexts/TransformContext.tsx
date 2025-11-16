@@ -4,6 +4,8 @@ interface TransformState {
   scale: number;
   positionX: number;
   positionY: number;
+  offsetX: number; // Canvas bounding rect left
+  offsetY: number; // Canvas bounding rect top
 }
 
 interface TransformContextType {
@@ -20,7 +22,7 @@ export const useTransform = () => {
   if (!context) {
     // Return identity transform if not in context
     return {
-      transformState: { scale: 1, positionX: 0, positionY: 0 },
+      transformState: { scale: 1, positionX: 0, positionY: 0, offsetX: 0, offsetY: 0 },
       setTransformState: () => {},
       screenToBoard: (x: number, y: number) => ({ x, y }),
       boardToScreen: (x: number, y: number) => ({ x, y }),
@@ -38,19 +40,23 @@ export const TransformProvider: React.FC<TransformProviderProps> = ({ children }
     scale: 1,
     positionX: 0,
     positionY: 0,
+    offsetX: 0,
+    offsetY: 0,
   });
 
   const screenToBoard = useCallback((screenX: number, screenY: number) => {
+    // Subtract canvas offset, then apply transform
     return {
-      x: (screenX - transformState.positionX) / transformState.scale,
-      y: (screenY - transformState.positionY) / transformState.scale,
+      x: (screenX - transformState.offsetX - transformState.positionX) / transformState.scale,
+      y: (screenY - transformState.offsetY - transformState.positionY) / transformState.scale,
     };
   }, [transformState]);
 
   const boardToScreen = useCallback((boardX: number, boardY: number) => {
+    // Apply transform, then add canvas offset
     return {
-      x: boardX * transformState.scale + transformState.positionX,
-      y: boardY * transformState.scale + transformState.positionY,
+      x: boardX * transformState.scale + transformState.positionX + transformState.offsetX,
+      y: boardY * transformState.scale + transformState.positionY + transformState.offsetY,
     };
   }, [transformState]);
 
