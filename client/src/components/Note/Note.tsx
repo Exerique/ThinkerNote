@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useLayoutEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Note as NoteType, Sticker } from '../../../../shared/src/types';
 import { useWebSocket } from '../../contexts/WebSocketContext';
@@ -294,16 +294,23 @@ const Note: React.FC<NoteProps> = ({ note }) => {
     };
   }, [isDragging, dragStart, position, note.id, sendMoveNote, applyMomentum, setNoteStatic, setNotePosition]);
 
+  const syncContentEditable = useCallback(() => {
+    const editable = contentEditableRef.current;
+    if (!editable) return;
+
+    if (editable.textContent !== content) {
+      editable.textContent = content;
+    }
+  }, [content]);
+
   // Keep the DOM contentEditable text in sync with React state when not editing
-  useEffect(() => {
-    if (!contentEditableRef.current || isEditing) {
+  useLayoutEffect(() => {
+    if (isEditing) {
       return;
     }
 
-    if (contentEditableRef.current.textContent !== content) {
-      contentEditableRef.current.textContent = content;
-    }
-  }, [content, isEditing]);
+    syncContentEditable();
+  }, [content, isEditing, syncContentEditable]);
 
   const handleContentChange = useCallback(() => {
     if (contentEditableRef.current) {
@@ -346,9 +353,11 @@ const Note: React.FC<NoteProps> = ({ note }) => {
   }, [note.content, note.id, sendUpdateNote, sendEditingEnd]);
 
   const handleContentFocus = useCallback(() => {
+    // Ensure DOM content matches buffered state before the user starts typing
+    syncContentEditable();
     setIsEditing(true);
     sendEditingStart(note.id);
-  }, [note.id, sendEditingStart]);
+  }, [note.id, sendEditingStart, syncContentEditable]);
 
   const handleDelete = useCallback(() => {
     setShowDeleteConfirm(true);
