@@ -561,15 +561,15 @@ const Note: React.FC<NoteProps> = ({ note }) => {
           width: `${note.width}px`,
           minHeight: `${note.height}px`,
           background: note.backgroundColor,
+          left: `${position.x}px`,
+          top: `${position.y}px`,
         }}
         onPointerDown={handlePointerDown}
         onClick={handleToggleExpand}
-        initial={{ opacity: 0, scale: 0, x: position.x, y: position.y }}
+        initial={{ opacity: 0, scale: 0 }}
         animate={{ 
           opacity: 1, 
           scale: 1,
-          x: position.x,
-          y: position.y,
           height: isExpanded ? 'auto' : '100px'
         }}
         exit={{ 
@@ -580,8 +580,6 @@ const Note: React.FC<NoteProps> = ({ note }) => {
         transition={{
           opacity: { type: 'spring', stiffness: 300, damping: 20, duration: 0.4 },
           scale: { type: 'spring', stiffness: 300, damping: 20, duration: 0.4 },
-          x: isDragging ? { duration: 0 } : { type: 'spring', stiffness: 200, damping: 25 },
-          y: isDragging ? { duration: 0 } : { type: 'spring', stiffness: 200, damping: 25 },
           height: { duration: 0.3, ease: [0.4, 0.0, 0.2, 1] },
           layout: { duration: 0.3, ease: [0.4, 0.0, 0.2, 1] }
         }}
@@ -776,19 +774,19 @@ const Note: React.FC<NoteProps> = ({ note }) => {
         {showCustomization && (
           <motion.div
             className={styles.customizationPanel}
-            initial={{ opacity: 0, scale: 0.9, x: position.x + note.width + 10, y: position.y }}
+            style={{
+              left: `${position.x + note.width + 10}px`,
+              top: `${position.y}px`,
+            }}
+            initial={{ opacity: 0, scale: 0.9 }}
             animate={{ 
               opacity: 1, 
               scale: 1,
-              x: position.x + note.width + 10,
-              y: position.y
             }}
             exit={{ opacity: 0, scale: 0.9 }}
             transition={{ 
               opacity: { duration: 0.2 },
               scale: { duration: 0.2 },
-              x: { type: 'spring', stiffness: 200, damping: 25 },
-              y: { type: 'spring', stiffness: 200, damping: 25 }
             }}
             onClick={(e) => e.stopPropagation()}
           >
@@ -859,19 +857,19 @@ const Note: React.FC<NoteProps> = ({ note }) => {
         {showStickerLibrary && (
           <motion.div
             className={styles.stickerLibrary}
-            initial={{ opacity: 0, scale: 0.9, x: position.x + note.width + 10, y: position.y }}
+            style={{
+              left: `${position.x + note.width + 10}px`,
+              top: `${position.y}px`,
+            }}
+            initial={{ opacity: 0, scale: 0.9 }}
             animate={{ 
               opacity: 1, 
               scale: 1,
-              x: position.x + note.width + 10,
-              y: position.y
             }}
             exit={{ opacity: 0, scale: 0.9 }}
             transition={{ 
               opacity: { duration: 0.2 },
               scale: { duration: 0.2 },
-              x: { type: 'spring', stiffness: 200, damping: 25 },
-              y: { type: 'spring', stiffness: 200, damping: 25 }
             }}
             onClick={(e) => e.stopPropagation()}
           >
@@ -896,17 +894,17 @@ const Note: React.FC<NoteProps> = ({ note }) => {
         {showDeleteConfirm && (
           <motion.div
             className={styles.deleteDialog}
-            initial={{ opacity: 0, x: position.x, y: position.y + note.height }}
-            animate={{ 
-              opacity: 1, 
-              x: position.x,
-              y: position.y + note.height + 10
+            style={{
+              left: `${position.x}px`,
+              top: `${position.y + note.height + 10}px`,
             }}
-            exit={{ opacity: 0, y: position.y + note.height }}
+            initial={{ opacity: 0 }}
+            animate={{ 
+              opacity: 1,
+            }}
+            exit={{ opacity: 0 }}
             transition={{ 
               opacity: { duration: 0.2 },
-              x: { type: 'spring', stiffness: 200, damping: 25 },
-              y: { duration: 0.2 }
             }}
             onClick={(e) => e.stopPropagation()}
           >
