@@ -61,6 +61,8 @@ const Note: React.FC<NoteProps> = ({ note }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [draggingStickerId, setDraggingStickerId] = useState<string | null>(null);
+  const [stickerDragStart, setStickerDragStart] = useState({ x: 0, y: 0 });
   const contentEditableRef = useRef<HTMLDivElement>(null);
   const noteRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -531,6 +533,54 @@ const Note: React.FC<NoteProps> = ({ note }) => {
     });
   };
 
+  const handleStickerPointerDown = (e: React.PointerEvent, sticker: Sticker) => {
+    e.stopPropagation(); // Don't drag the note
+    e.preventDefault();
+    
+    setDraggingStickerId(sticker.id);
+    setStickerDragStart({
+      x: e.clientX - sticker.x,
+      y: e.clientY - sticker.y,
+    });
+  };
+
+  useEffect(() => {
+    if (!draggingStickerId) return;
+
+    const handleStickerMove = (e: PointerEvent) => {
+      const sticker = note.stickers.find(s => s.id === draggingStickerId);
+      if (!sticker) return;
+
+      // Calculate new position relative to note
+      const newX = Math.max(0, Math.min(note.width - 60, e.clientX - stickerDragStart.x));
+      const newY = Math.max(0, Math.min(note.height - 60, e.clientY - stickerDragStart.y));
+
+      // Update sticker position
+      sendUpdateNote({
+        noteId: note.id,
+        updates: {
+          stickers: note.stickers.map(s =>
+            s.id === draggingStickerId ? { ...s, x: newX, y: newY } : s
+          ),
+        },
+      });
+    };
+
+    const handleStickerUp = () => {
+      setDraggingStickerId(null);
+    };
+
+    document.addEventListener('pointermove', handleStickerMove);
+    document.addEventListener('pointerup', handleStickerUp);
+    document.addEventListener('pointercancel', handleStickerUp);
+
+    return () => {
+      document.removeEventListener('pointermove', handleStickerMove);
+      document.removeEventListener('pointerup', handleStickerUp);
+      document.removeEventListener('pointercancel', handleStickerUp);
+    };
+  }, [draggingStickerId, stickerDragStart, note.stickers, note.id, note.width, note.height, sendUpdateNote]);
+
   const getPreviewContent = () => {
     if (!content) return 'New note...';
     return content.length > 50 ? content.substring(0, 50) + '...' : content;
@@ -730,9 +780,11 @@ const Note: React.FC<NoteProps> = ({ note }) => {
                         fontSize: `${28 * sticker.scale}px`,
                         left: `${sticker.x}px`,
                         top: `${sticker.y}px`,
+                        cursor: draggingStickerId === sticker.id ? 'grabbing' : 'grab',
                       }}
+                      onPointerDown={(e) => handleStickerPointerDown(e, sticker)}
                     >
-                      <span>{sticker.type}</span>
+                      <span style={{ pointerEvents: 'none' }}>{sticker.type}</span>
                       <div className={styles.stickerControls}>
                         <button
                           onClick={(e) => {

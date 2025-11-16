@@ -29,6 +29,7 @@ const BoardContent = forwardRef<BoardRef, BoardProps>(({ onZoomChange }, ref) =>
   const { addOrUpdateNote, removeNote, setViewportBounds } = usePhysicsContext();
   const { setTransformState } = useTransform();
   const previousNoteIdsRef = useRef<Set<string>>(new Set());
+  const lastPointerDownRef = useRef<{ x: number; y: number; time: number } | null>(null);
 
   // Sync notes with physics engine
   // Use note IDs to avoid re-rendering on every note update
@@ -113,6 +114,15 @@ const BoardContent = forwardRef<BoardRef, BoardProps>(({ onZoomChange }, ref) =>
     },
   }));
 
+  const handleCanvasPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    // Track pointer position and time for double-click detection
+    lastPointerDownRef.current = {
+      x: e.clientX,
+      y: e.clientY,
+      time: Date.now(),
+    };
+  };
+
   const handleCanvasDoubleClick = (e: React.MouseEvent<HTMLDivElement>) => {
     // Prevent if clicking on a note
     const target = e.target as HTMLElement;
@@ -121,6 +131,18 @@ const BoardContent = forwardRef<BoardRef, BoardProps>(({ onZoomChange }, ref) =>
     }
 
     if (!currentBoard) return;
+
+    // Check if pointer moved significantly between clicks
+    if (lastPointerDownRef.current) {
+      const dx = Math.abs(e.clientX - lastPointerDownRef.current.x);
+      const dy = Math.abs(e.clientY - lastPointerDownRef.current.y);
+      const timeSinceDown = Date.now() - lastPointerDownRef.current.time;
+      
+      // Ignore if moved more than 10px or if it's been too long (likely panning)
+      if (dx > 10 || dy > 10 || timeSinceDown > 500) {
+        return;
+      }
+    }
 
     // Get the canvas element and its bounding rect
     const canvasElement = e.currentTarget;
@@ -216,6 +238,7 @@ const BoardContent = forwardRef<BoardRef, BoardProps>(({ onZoomChange }, ref) =>
         >
           <div
             className={styles.canvas}
+            onPointerDown={handleCanvasPointerDown}
             onDoubleClick={handleCanvasDoubleClick}
           >
             {/* Background grid pattern */}
