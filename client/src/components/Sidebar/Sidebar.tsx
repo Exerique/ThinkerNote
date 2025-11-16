@@ -8,7 +8,7 @@ import styles from './Sidebar.module.css';
 
 const Sidebar: React.FC = () => {
   const navigate = useNavigate();
-  const { boards, currentBoardId, setCurrentBoardId, addToast } = useApp();
+  const { boards, currentBoardId, setCurrentBoardId, addToast, addBoard, deleteBoard } = useApp();
   const { sendCreateBoard, sendDeleteBoard, sendRenameBoard } = useWebSocket();
   
   const [isCollapsed, setIsCollapsed] = useState(() => {
@@ -71,7 +71,10 @@ const Sidebar: React.FC = () => {
       
       if (response.ok) {
         const board = await response.json();
-        sendCreateBoard({ name: newBoardName.trim() });
+        // Add board to local state immediately
+        addBoard(board);
+        // Broadcast to other clients via WebSocket
+        sendCreateBoard({ boardId: board.id, name: board.name });
         setNewBoardName('');
         setShowNewBoardDialog(false);
         // Navigate to the new board
@@ -102,6 +105,9 @@ const Sidebar: React.FC = () => {
       });
       
       if (response.ok) {
+        // Delete from local state immediately
+        deleteBoard(boardId);
+        // Broadcast to other clients via WebSocket
         sendDeleteBoard({ boardId });
         setDeletingBoardId(null);
         // Navigate to home if deleting current board
@@ -111,6 +117,11 @@ const Sidebar: React.FC = () => {
       }
     } catch (error) {
       console.error('Failed to delete board:', error);
+      addToast({
+        message: 'Failed to delete board. Please try again.',
+        type: 'error',
+        duration: 4000,
+      });
     }
   };
 

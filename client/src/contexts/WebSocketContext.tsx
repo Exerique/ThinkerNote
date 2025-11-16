@@ -58,7 +58,10 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
     deleteBoard,
     setConnectionStatus,
     addToast,
+    currentBoardId,
   } = useApp();
+  
+  const getCurrentBoardId = React.useCallback(() => currentBoardId, [currentBoardId]);
 
   useEffect(() => {
     // Connect to WebSocket server
@@ -117,6 +120,12 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
             type: 'success',
             duration: 2000,
           });
+          
+          // Re-sync current board on reconnect
+          const currentBoardId = getCurrentBoardId();
+          if (currentBoardId) {
+            websocketService.requestSync(currentBoardId);
+          }
         } else if (status === 'disconnected') {
           addToast({
             message: 'Disconnected from server',

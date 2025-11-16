@@ -66,8 +66,12 @@ export function setupWebSocketHandlers(io: Server, stateManager: StateManager): 
 
         if (note) {
           // Broadcast to all clients in the board room (including sender)
-          // Send just the note as payload - client will wrap it in WSMessage
-          io.to(`board:${payload.boardId}`).emit('note:created', note);
+          io.to(`board:${payload.boardId}`).emit('note:created', {
+            type: 'note:created',
+            payload: note,
+            timestamp: Date.now(),
+            userId: message.userId,
+          });
         } else {
           socket.emit('error', {
             message: 'Failed to create note',
@@ -94,8 +98,12 @@ export function setupWebSocketHandlers(io: Server, stateManager: StateManager): 
 
         if (note) {
           // Broadcast to all clients in the board room (including sender)
-          // Send just the note as payload - client will wrap it in WSMessage
-          io.to(`board:${note.boardId}`).emit('note:updated', note);
+          io.to(`board:${note.boardId}`).emit('note:updated', {
+            type: 'note:updated',
+            payload: note,
+            timestamp: Date.now(),
+            userId: message.userId,
+          });
         } else {
           socket.emit('error', {
             message: 'Failed to update note',
@@ -126,8 +134,12 @@ export function setupWebSocketHandlers(io: Server, stateManager: StateManager): 
 
           if (success) {
             // Broadcast to all clients in the board room (including sender)
-            // Send just the payload - client will wrap it in WSMessage
-            io.to(`board:${boardId}`).emit('note:deleted', { noteId: payload.noteId });
+            io.to(`board:${boardId}`).emit('note:deleted', {
+              type: 'note:deleted',
+              payload: { noteId: payload.noteId },
+              timestamp: Date.now(),
+              userId: message.userId,
+            });
           }
         } else {
           socket.emit('error', {
@@ -155,11 +167,15 @@ export function setupWebSocketHandlers(io: Server, stateManager: StateManager): 
 
         if (note) {
           // Broadcast to all clients in the board room (including sender)
-          // Send just the payload - client will wrap it in WSMessage
           io.to(`board:${note.boardId}`).emit('note:moved', {
-            noteId: note.id,
-            x: note.x,
-            y: note.y,
+            type: 'note:moved',
+            payload: {
+              noteId: note.id,
+              x: note.x,
+              y: note.y,
+            },
+            timestamp: Date.now(),
+            userId: message.userId,
           });
         } else {
           socket.emit('error', {
@@ -176,18 +192,29 @@ export function setupWebSocketHandlers(io: Server, stateManager: StateManager): 
       }
     });
 
-    // Handle board creation
+    // Handle board creation (broadcast only - board already created via REST)
     socket.on('board:create', (message: WSMessage) => {
       try {
         validateWSMessage(message);
         validateCreateBoardPayload(message.payload);
 
         const payload = message.payload as CreateBoardPayload;
-        const board = stateManager.createBoard(payload.name);
+        const board = stateManager.getBoard(payload.boardId);
 
-        // Broadcast to all connected clients
-        // Send just the board as payload - client will wrap it in WSMessage
-        io.emit('board:created', board);
+        if (board) {
+          // Broadcast existing board to other clients (not sender)
+          socket.broadcast.emit('board:created', {
+            type: 'board:created',
+            payload: board,
+            timestamp: Date.now(),
+            userId: message.userId,
+          });
+        } else {
+          socket.emit('error', {
+            message: 'Board not found',
+            originalMessage: message,
+          });
+        }
       } catch (error) {
         logger.error(error as Error, 'board:create');
         socket.emit('error', {
@@ -197,25 +224,21 @@ export function setupWebSocketHandlers(io: Server, stateManager: StateManager): 
       }
     });
 
-    // Handle board deletion
+    // Handle board deletion (broadcast only - board already deleted via REST)
     socket.on('board:delete', (message: WSMessage) => {
       try {
         validateWSMessage(message);
         validateDeleteBoardPayload(message.payload);
 
         const payload = message.payload as DeleteBoardPayload;
-        const success = stateManager.deleteBoard(payload.boardId);
-
-        if (success) {
-          // Broadcast to all connected clients
-          // Send just the payload - client will wrap it in WSMessage
-          io.emit('board:deleted', { boardId: payload.boardId });
-        } else {
-          socket.emit('error', {
-            message: 'Board not found',
-            originalMessage: message,
-          });
-        }
+        
+        // Broadcast to other clients (not sender - they already deleted locally)
+        socket.broadcast.emit('board:deleted', {
+          type: 'board:deleted',
+          payload: { boardId: payload.boardId },
+          timestamp: Date.now(),
+          userId: message.userId,
+        });
       } catch (error) {
         logger.error(error as Error, 'board:delete');
         socket.emit('error', {
@@ -236,8 +259,12 @@ export function setupWebSocketHandlers(io: Server, stateManager: StateManager): 
 
         if (board) {
           // Broadcast to all connected clients
-          // Send just the board as payload - client will wrap it in WSMessage
-          io.emit('board:renamed', board);
+          io.emit('board:renamed', {
+            type: 'board:renamed',
+            payload: board,
+            timestamp: Date.now(),
+            userId: message.userId,
+          });
         } else {
           socket.emit('error', {
             message: 'Board not found',
@@ -264,8 +291,12 @@ export function setupWebSocketHandlers(io: Server, stateManager: StateManager): 
 
         if (board) {
           // Send sync response only to requesting client
-          // Send just the payload - client will wrap it in WSMessage
-          socket.emit('sync:response', { board });
+          socket.emit('sync:response', {
+            type: 'sync:response',
+            payload: { board },
+            timestamp: Date.now(),
+            userId: message.userId,
+          });
         } else {
           socket.emit('error', {
             message: 'Board not found',

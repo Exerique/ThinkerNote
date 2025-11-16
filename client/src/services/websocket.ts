@@ -12,6 +12,7 @@ class WebSocketService {
   private baseReconnectDelay = 3000; // 3 seconds
   private reconnectTimer: NodeJS.Timeout | null = null;
   private userId: string;
+  private joinedBoards: Set<string> = new Set();
 
   constructor() {
     // Generate a unique user ID for this session
@@ -49,12 +50,19 @@ class WebSocketService {
     this.socket.on('connect', () => {
       console.log('WebSocket connected');
       this.reconnectAttempts = 0;
+      
+      // Re-join all previously joined boards
+      this.joinedBoards.forEach(boardId => {
+        this.socket!.emit('join:board', boardId);
+      });
+      
       this.flushMessageQueue();
       this.notifyConnectionChange('connected');
     });
 
     this.socket.on('disconnect', () => {
       console.log('WebSocket disconnected');
+      this.joinedBoards.clear(); // Clear joined boards on disconnect
       this.notifyConnectionChange('disconnected');
       this.scheduleReconnect();
     });
@@ -185,9 +193,10 @@ class WebSocketService {
   }
 
   requestSync(boardId: string): void {
-    // Join the board room
-    if (this.socket?.connected) {
+    // Join the board room only if not already joined
+    if (this.socket?.connected && !this.joinedBoards.has(boardId)) {
       this.socket.emit('join:board', boardId);
+      this.joinedBoards.add(boardId);
     }
     this.send('sync:request', { boardId });
   }
@@ -205,6 +214,7 @@ class WebSocketService {
 
     this.messageHandlers.clear();
     this.messageQueue = [];
+    this.joinedBoards.clear();
   }
 
   isConnected(): boolean {

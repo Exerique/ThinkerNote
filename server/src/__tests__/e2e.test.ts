@@ -496,7 +496,6 @@ describe('End-to-End Tests', () => {
     it('maintains data integrity during reconnection', async () => {
       // Create initial notes
       const note1 = stateManager.createNote(boardId, 100, 100);
-      const note2 = stateManager.createNote(boardId, 200, 200);
 
       // Client 1 disconnects
       client1.disconnect();

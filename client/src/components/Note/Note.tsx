@@ -67,14 +67,29 @@ const Note: React.FC<NoteProps> = ({ note }) => {
   const lastPositionRef = useRef({ x: note.x, y: note.y });
   const lastTimeRef = useRef(Date.now());
   const velocityRef = useRef({ x: 0, y: 0 });
+  
+  // Track if we're in physics motion (after drag release)
+  const isInPhysicsMotionRef = useRef(false);
+  const physicsMotionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // Debounce content updates
+  const contentUpdateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Sync position with prop changes (from remote updates)
   // Use smooth animation for remote updates
+  // Only update if the position difference is significant (more than 5px)
+  // This prevents fighting with local drag updates and physics motion
   useEffect(() => {
-    if (!isDragging) {
-      setPosition({ x: note.x, y: note.y });
+    if (!isDragging && !isInPhysicsMotionRef.current) {
+      const dx = Math.abs(note.x - position.x);
+      const dy = Math.abs(note.y - position.y);
+      
+      // Only sync if position changed significantly (remote update)
+      if (dx > 5 || dy > 5) {
+        setPosition({ x: note.x, y: note.y });
+      }
     }
-  }, [note.x, note.y, isDragging]);
+  }, [note.x, note.y, isDragging, position.x, position.y]);
 
   // Sync content with prop changes
   useEffect(() => {
@@ -187,8 +202,21 @@ const Note: React.FC<NoteProps> = ({ note }) => {
       );
       
       if (speed > 1) {
+        // Mark that we're in physics motion
+        isInPhysicsMotionRef.current = true;
+        
+        // Clear any existing timeout
+        if (physicsMotionTimeoutRef.current) {
+          clearTimeout(physicsMotionTimeoutRef.current);
+        }
+        
         // Apply physics momentum
         applyMomentum(note.id, velocityRef.current.x, velocityRef.current.y);
+        
+        // Clear physics motion flag after animation completes (estimate 2 seconds)
+        physicsMotionTimeoutRef.current = setTimeout(() => {
+          isInPhysicsMotionRef.current = false;
+        }, 2000);
       } else {
         // Just send final position
         sendMoveNote({
@@ -218,8 +246,22 @@ const Note: React.FC<NoteProps> = ({ note }) => {
       // Use textContent for plain text to prevent XSS
       const newContent = contentEditableRef.current.textContent || '';
       setContent(newContent);
+      
+      // Debounce content updates (500ms) for real-time collaboration
+      if (contentUpdateTimeoutRef.current) {
+        clearTimeout(contentUpdateTimeoutRef.current);
+      }
+      
+      contentUpdateTimeoutRef.current = setTimeout(() => {
+        if (newContent !== note.content) {
+          sendUpdateNote({
+            noteId: note.id,
+            updates: { content: newContent },
+          });
+        }
+      }, 500);
     }
-  }, []);
+  }, [note.content, note.id, sendUpdateNote]);
 
   const handleContentBlur = useCallback(() => {
     setIsEditing(false);
@@ -460,6 +502,18 @@ const Note: React.FC<NoteProps> = ({ note }) => {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isEditing]);
+  
+  // Cleanup timeouts on unmount
+  useEffect(() => {
+    return () => {
+      if (physicsMotionTimeoutRef.current) {
+        clearTimeout(physicsMotionTimeoutRef.current);
+      }
+      if (contentUpdateTimeoutRef.current) {
+        clearTimeout(contentUpdateTimeoutRef.current);
+      }
+    };
+  }, []);
 
   return (
     <>

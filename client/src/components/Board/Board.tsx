@@ -13,6 +13,7 @@ export interface BoardRef {
   zoomOut: () => void;
   resetZoom: () => void;
   fitToScreen: () => void;
+  getViewportCenter: () => { x: number; y: number } | null;
 }
 
 interface BoardProps {
@@ -79,6 +80,19 @@ const BoardContent = forwardRef<BoardRef, BoardProps>(({ onZoomChange }, ref) =>
     },
     fitToScreen: () => {
       transformWrapperRef.current?.centerView(1);
+    },
+    getViewportCenter: () => {
+      const transformState = transformWrapperRef.current?.instance?.transformState;
+      if (!transformState) return null;
+      
+      const viewportWidth = window.innerWidth;
+      const viewportHeight = window.innerHeight;
+      
+      // Calculate center of viewport in canvas coordinates
+      const centerX = (viewportWidth / 2 - transformState.positionX) / transformState.scale;
+      const centerY = (viewportHeight / 2 - transformState.positionY) / transformState.scale;
+      
+      return { x: Math.round(centerX), y: Math.round(centerY) };
     },
   }));
 

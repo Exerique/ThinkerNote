@@ -376,6 +376,10 @@ export function validateCreateBoardPayload(data: any): data is CreateBoardPayloa
 
   const obj = data as Record<string, any>;
 
+  if (!isString(obj.boardId) || obj.boardId.length === 0) {
+    throw new ValidationError('CreateBoardPayload boardId must be a non-empty string');
+  }
+
   if (!isString(obj.name) || obj.name.length === 0) {
     throw new ValidationError('CreateBoardPayload name must be a non-empty string');
   }

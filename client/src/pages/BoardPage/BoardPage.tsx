@@ -51,9 +51,14 @@ const BoardPage: React.FC = () => {
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (!document.hidden && boardId) {
-        // Clear cache for current board to force sync
-        syncedBoardsRef.current.delete(boardId);
-        requestSync(boardId);
+        const now = Date.now();
+        const lastSyncTime = syncedBoardsRef.current.get(boardId);
+        
+        // Only sync if cache is stale (more than 5 seconds old)
+        if (!lastSyncTime || (now - lastSyncTime) > SYNC_CACHE_DURATION) {
+          requestSync(boardId);
+          syncedBoardsRef.current.set(boardId, now);
+        }
       }
     };
 
@@ -82,11 +87,14 @@ const BoardPage: React.FC = () => {
   const handleNewNote = () => {
     if (!currentBoard) return;
     
-    // Create note at center of viewport
+    // Get the current viewport center from the board ref
+    const viewportCenter = boardRef.current?.getViewportCenter();
+    
+    // Create note at center of viewport or fallback to default
     sendCreateNote({
       boardId: currentBoard.id,
-      x: 500,
-      y: 500,
+      x: viewportCenter?.x ?? 500,
+      y: viewportCenter?.y ?? 500,
     });
   };
 

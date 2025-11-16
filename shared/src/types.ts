@@ -86,6 +86,7 @@ export interface MoveNotePayload {
 }
 
 export interface CreateBoardPayload {
+  boardId: string;
   name: string;
 }
 
