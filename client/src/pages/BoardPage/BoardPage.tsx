@@ -12,7 +12,7 @@ import styles from './BoardPage.module.css';
 const BoardPage: React.FC = () => {
   const { boardId } = useParams<{ boardId: string }>();
   const { getCurrentBoard, setCurrentBoardId } = useApp();
-  const { requestSync, sendCreateNote } = useWebSocket();
+  const { requestSync, leaveBoard, sendCreateNote } = useWebSocket();
   const boardRef = useRef<BoardRef>(null);
   const [zoomLevel, setZoomLevel] = useState<number>(1);
   const [isLoading, setIsLoading] = useState(true);
@@ -40,12 +40,21 @@ const BoardPage: React.FC = () => {
           setIsLoading(false);
         }, 300);
         
-        return () => clearTimeout(timer);
+        return () => {
+          clearTimeout(timer);
+          // Leave board room when navigating away
+          leaveBoard(boardId);
+        };
       } else {
         setIsLoading(false);
+        
+        // Still need to leave on unmount
+        return () => {
+          leaveBoard(boardId);
+        };
       }
     }
-  }, [boardId, setCurrentBoardId, requestSync]);
+  }, [boardId, setCurrentBoardId, requestSync, leaveBoard]);
 
   // Force re-sync when page becomes visible (user returns to tab)
   useEffect(() => {

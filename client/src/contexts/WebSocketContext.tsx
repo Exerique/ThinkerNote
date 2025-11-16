@@ -26,6 +26,7 @@ interface WebSocketContextType {
   sendDeleteBoard: (payload: DeleteBoardPayload) => void;
   sendRenameBoard: (payload: RenameBoardPayload) => void;
   requestSync: (boardId: string) => void;
+  leaveBoard: (boardId: string) => void;
   isConnected: boolean;
 }
 
@@ -249,6 +250,10 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
     websocketService.requestSync(boardId);
   }, []);
 
+  const leaveBoardCallback = React.useCallback((boardId: string) => {
+    websocketService.leaveBoard(boardId);
+  }, []);
+
   const value: WebSocketContextType = React.useMemo(() => ({
     sendCreateNote,
     sendUpdateNote,
@@ -260,6 +265,7 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
     sendDeleteBoard,
     sendRenameBoard,
     requestSync: requestSyncCallback,
+    leaveBoard: leaveBoardCallback,
     isConnected: websocketService.isConnected(),
   }), [
     sendCreateNote,
@@ -272,6 +278,7 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
     sendDeleteBoard,
     sendRenameBoard,
     requestSyncCallback,
+    leaveBoardCallback,
   ]);
 
   return (

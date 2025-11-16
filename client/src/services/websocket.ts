@@ -62,7 +62,7 @@ class WebSocketService {
 
     this.socket.on('disconnect', () => {
       console.log('WebSocket disconnected');
-      this.joinedBoards.clear(); // Clear joined boards on disconnect
+      // Don't clear joinedBoards - we'll re-join them on reconnect
       this.notifyConnectionChange('disconnected');
       this.scheduleReconnect();
     });
@@ -196,12 +196,25 @@ class WebSocketService {
   }
 
   requestSync(boardId: string): void {
-    // Join the board room only if not already joined
-    if (this.socket?.connected && !this.joinedBoards.has(boardId)) {
+    // Always add to joined boards set (will join on connect if not connected yet)
+    this.joinedBoards.add(boardId);
+    
+    // Join the board room if connected
+    if (this.socket?.connected) {
       this.socket.emit('join:board', boardId);
-      this.joinedBoards.add(boardId);
     }
+    
     this.send('sync:request', { boardId });
+  }
+  
+  leaveBoard(boardId: string): void {
+    // Remove from joined boards set
+    this.joinedBoards.delete(boardId);
+    
+    // Leave the board room if connected
+    if (this.socket?.connected) {
+      this.socket.emit('leave:board', boardId);
+    }
   }
 
   disconnect(): void {
