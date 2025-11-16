@@ -95,10 +95,14 @@ const Note: React.FC<NoteProps> = ({ note }) => {
     }
   }, [note.x, note.y, isDragging, position.x, position.y]);
 
-  // Sync content with prop changes
+  // Sync content with prop changes (only when not editing)
   useEffect(() => {
-    if (!isEditing) {
-      setContent(note.content);
+    if (!isEditing && contentEditableRef.current) {
+      // Only update if content actually changed and we're not editing
+      if (contentEditableRef.current.textContent !== note.content) {
+        contentEditableRef.current.textContent = note.content;
+        setContent(note.content);
+      }
     }
   }, [note.content, isEditing]);
 
@@ -757,13 +761,23 @@ const Note: React.FC<NoteProps> = ({ note }) => {
             <>
               <div
                 ref={contentEditableRef}
-                contentEditable
+                contentEditable="true"
                 suppressContentEditableWarning
                 onInput={handleContentChange}
                 onBlur={handleContentBlur}
                 onFocus={handleContentFocus}
-                onClick={(e) => e.stopPropagation()}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  // Ensure focus on click
+                  if (contentEditableRef.current) {
+                    contentEditableRef.current.focus();
+                  }
+                }}
                 className={styles.editableContent}
+                data-placeholder="Type here..."
+                role="textbox"
+                aria-multiline="true"
+                dangerouslySetInnerHTML={{ __html: content }}
               />
               
               {/* Character count */}
