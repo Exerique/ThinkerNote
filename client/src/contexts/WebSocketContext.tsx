@@ -20,6 +20,8 @@ interface WebSocketContextType {
   sendUpdateNote: (payload: UpdateNotePayload) => void;
   sendDeleteNote: (payload: DeleteNotePayload) => void;
   sendMoveNote: (payload: MoveNotePayload) => void;
+  sendEditingStart: (noteId: string) => void;
+  sendEditingEnd: (noteId: string) => void;
   sendCreateBoard: (payload: CreateBoardPayload) => void;
   sendDeleteBoard: (payload: DeleteBoardPayload) => void;
   sendRenameBoard: (payload: RenameBoardPayload) => void;
@@ -107,6 +109,16 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
       updateBoard(boardId, { name });
     };
 
+    const handleEditingStart = (message: WSMessage) => {
+      const { noteId, userId } = message.payload;
+      updateNote(noteId, { editingBy: userId });
+    };
+
+    const handleEditingEnd = (message: WSMessage) => {
+      const { noteId } = message.payload;
+      updateNote(noteId, { editingBy: undefined });
+    };
+
     const handleSyncResponse = (message: WSMessage) => {
       // Check if this is a connection status update
       if (message.payload.status) {
@@ -155,6 +167,8 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
     websocketService.on('note:update', handleNoteUpdate);
     websocketService.on('note:delete', handleNoteDelete);
     websocketService.on('note:move', handleNoteMove);
+    websocketService.on('note:editing:start', handleEditingStart);
+    websocketService.on('note:editing:end', handleEditingEnd);
     websocketService.on('board:create', handleBoardCreate);
     websocketService.on('board:delete', handleBoardDelete);
     websocketService.on('board:rename', handleBoardRename);
@@ -166,13 +180,15 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
       websocketService.off('note:update', handleNoteUpdate);
       websocketService.off('note:delete', handleNoteDelete);
       websocketService.off('note:move', handleNoteMove);
+      websocketService.off('note:editing:start', handleEditingStart);
+      websocketService.off('note:editing:end', handleEditingEnd);
       websocketService.off('board:create', handleBoardCreate);
       websocketService.off('board:delete', handleBoardDelete);
       websocketService.off('board:rename', handleBoardRename);
       websocketService.off('sync:response', handleSyncResponse);
       websocketService.disconnect();
     };
-  }, [serverUrl, addNote, updateNote, deleteNote, addBoard, updateBoard, deleteBoard, setConnectionStatus]);
+  }, [serverUrl, addNote, updateNote, deleteNote, addBoard, updateBoard, deleteBoard, setConnectionStatus, addToast]);
 
   const value: WebSocketContextType = {
     sendCreateNote: (payload) => {
@@ -198,6 +214,8 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
     sendUpdateNote: (payload) => websocketService.send('note:update', payload),
     sendDeleteNote: (payload) => websocketService.send('note:delete', payload),
     sendMoveNote: (payload) => websocketService.send('note:move', payload),
+    sendEditingStart: (noteId) => websocketService.send('note:editing:start', { noteId, userId: websocketService.getUserId() }),
+    sendEditingEnd: (noteId) => websocketService.send('note:editing:end', { noteId, userId: websocketService.getUserId() }),
     sendCreateBoard: (payload) => websocketService.send('board:create', payload),
     sendDeleteBoard: (payload) => websocketService.send('board:delete', payload),
     sendRenameBoard: (payload) => websocketService.send('board:rename', payload),

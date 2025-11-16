@@ -80,6 +80,8 @@ class WebSocketService {
       'note:updated': 'note:update',
       'note:deleted': 'note:delete',
       'note:moved': 'note:move',
+      'note:editing:started': 'note:editing:start',
+      'note:editing:ended': 'note:editing:end',
       'board:created': 'board:create',
       'board:deleted': 'board:delete',
       'board:renamed': 'board:rename',

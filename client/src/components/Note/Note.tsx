@@ -45,7 +45,7 @@ const STICKER_EMOJIS = [
 ];
 
 const Note: React.FC<NoteProps> = ({ note }) => {
-  const { sendUpdateNote, sendDeleteNote, sendMoveNote } = useWebSocket();
+  const { sendUpdateNote, sendDeleteNote, sendMoveNote, sendEditingStart, sendEditingEnd } = useWebSocket();
   const { applyMomentum, setNoteStatic, setNotePosition } = usePhysicsContext();
   const { addToast } = useApp();
   const [isExpanded, setIsExpanded] = useState(note.isExpanded);
@@ -162,6 +162,9 @@ const Note: React.FC<NoteProps> = ({ note }) => {
   useEffect(() => {
     if (!isDragging) return;
 
+    let lastNetworkUpdate = Date.now();
+    const networkUpdateThrottle = 50; // Send position updates every 50ms (20 updates/sec)
+
     const handlePointerMove = (e: PointerEvent) => {
       const currentTime = Date.now();
       const deltaTime = currentTime - lastTimeRef.current;
@@ -187,6 +190,16 @@ const Note: React.FC<NoteProps> = ({ note }) => {
       
       // Update physics position during drag
       setNotePosition(note.id, newX, newY);
+      
+      // Throttle network updates to avoid flooding
+      if (currentTime - lastNetworkUpdate >= networkUpdateThrottle) {
+        sendMoveNote({
+          noteId: note.id,
+          x: Math.round(newX),
+          y: Math.round(newY),
+        });
+        lastNetworkUpdate = currentTime;
+      }
     };
 
     const handlePointerUp = () => {
@@ -265,6 +278,7 @@ const Note: React.FC<NoteProps> = ({ note }) => {
 
   const handleContentBlur = useCallback(() => {
     setIsEditing(false);
+    sendEditingEnd(note.id);
     if (contentEditableRef.current) {
       // Use textContent for plain text to prevent XSS
       const newContent = contentEditableRef.current.textContent || '';
@@ -275,11 +289,12 @@ const Note: React.FC<NoteProps> = ({ note }) => {
         });
       }
     }
-  }, [note.content, note.id, sendUpdateNote]);
+  }, [note.content, note.id, sendUpdateNote, sendEditingEnd]);
 
   const handleContentFocus = useCallback(() => {
     setIsEditing(true);
-  }, []);
+    sendEditingStart(note.id);
+  }, [note.id, sendEditingStart]);
 
   const handleDelete = useCallback(() => {
     setShowDeleteConfirm(true);
@@ -357,7 +372,14 @@ const Note: React.FC<NoteProps> = ({ note }) => {
     // Convert to Base64
     const reader = new FileReader();
     
-    // Show indeterminate progress since encoding time is not tracked
+    // Track progress during file read
+    reader.onprogress = (event) => {
+      if (event.lengthComputable) {
+        const progress = Math.round((event.loaded / event.total) * 100);
+        setUploadProgress(progress);
+      }
+    };
+    
     reader.onload = (event) => {
       try {
         const dataUrl = event.target?.result as string;
@@ -365,6 +387,9 @@ const Note: React.FC<NoteProps> = ({ note }) => {
         if (!dataUrl || typeof dataUrl !== 'string') {
           throw new Error('Invalid data URL');
         }
+
+        // Set to 100% before processing
+        setUploadProgress(100);
 
         const newImage = {
           id: `img-${Date.now()}`,

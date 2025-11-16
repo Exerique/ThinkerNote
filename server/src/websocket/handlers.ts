@@ -192,6 +192,54 @@ export function setupWebSocketHandlers(io: Server, stateManager: StateManager): 
       }
     });
 
+    // Handle editing start
+    socket.on('note:editing:start', (message: WSMessage) => {
+      try {
+        validateWSMessage(message);
+        const { noteId, userId } = message.payload;
+        const note = stateManager.getNote(noteId);
+
+        if (note) {
+          // Update note editing state
+          stateManager.updateNote(noteId, { editingBy: userId });
+          
+          // Broadcast to all clients in the board room
+          io.to(`board:${note.boardId}`).emit('note:editing:started', {
+            type: 'note:editing:started',
+            payload: { noteId, userId },
+            timestamp: Date.now(),
+            userId: message.userId,
+          });
+        }
+      } catch (error) {
+        logger.error(error as Error, 'note:editing:start');
+      }
+    });
+
+    // Handle editing end
+    socket.on('note:editing:end', (message: WSMessage) => {
+      try {
+        validateWSMessage(message);
+        const { noteId } = message.payload;
+        const note = stateManager.getNote(noteId);
+
+        if (note) {
+          // Clear note editing state
+          stateManager.updateNote(noteId, { editingBy: undefined });
+          
+          // Broadcast to all clients in the board room
+          io.to(`board:${note.boardId}`).emit('note:editing:ended', {
+            type: 'note:editing:ended',
+            payload: { noteId },
+            timestamp: Date.now(),
+            userId: message.userId,
+          });
+        }
+      } catch (error) {
+        logger.error(error as Error, 'note:editing:end');
+      }
+    });
+
     // Handle board creation (broadcast only - board already created via REST)
     socket.on('board:create', (message: WSMessage) => {
       try {
