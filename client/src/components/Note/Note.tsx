@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useLayoutEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Note as NoteType, Sticker } from '../../../../shared/src/types';
 import { useWebSocket } from '../../contexts/WebSocketContext';
@@ -294,18 +294,36 @@ const Note: React.FC<NoteProps> = ({ note }) => {
     };
   }, [isDragging, dragStart, position, note.id, sendMoveNote, applyMomentum, setNoteStatic, setNotePosition]);
 
+  const syncContentEditable = useCallback(() => {
+    const editable = contentEditableRef.current;
+    if (!editable) return;
+
+    if (editable.textContent !== content) {
+      editable.textContent = content;
+    }
+  }, [content]);
+
+  // Keep the DOM contentEditable text in sync with React state when not editing
+  useLayoutEffect(() => {
+    if (isEditing) {
+      return;
+    }
+
+    syncContentEditable();
+  }, [content, isEditing, syncContentEditable]);
+
   const handleContentChange = useCallback(() => {
     if (contentEditableRef.current) {
       // Use textContent for plain text to prevent XSS
       const newContent = contentEditableRef.current.textContent || '';
-      // Don't update local state during typing - it causes cursor jumps
-      // setContent(newContent);
-      
+      // Keep local state in sync while editing so React re-renders don't wipe the text
+      setContent(newContent);
+
       // Debounce content updates (500ms) for real-time collaboration
       if (contentUpdateTimeoutRef.current) {
         clearTimeout(contentUpdateTimeoutRef.current);
       }
-      
+
       contentUpdateTimeoutRef.current = setTimeout(() => {
         if (newContent !== note.content) {
           sendUpdateNote({
@@ -335,9 +353,11 @@ const Note: React.FC<NoteProps> = ({ note }) => {
   }, [note.content, note.id, sendUpdateNote, sendEditingEnd]);
 
   const handleContentFocus = useCallback(() => {
+    // Ensure DOM content matches buffered state before the user starts typing
+    syncContentEditable();
     setIsEditing(true);
     sendEditingStart(note.id);
-  }, [note.id, sendEditingStart]);
+  }, [note.id, sendEditingStart, syncContentEditable]);
 
   const handleDelete = useCallback(() => {
     setShowDeleteConfirm(true);
@@ -589,8 +609,7 @@ const Note: React.FC<NoteProps> = ({ note }) => {
     return content.length > 50 ? content.substring(0, 50) + '...' : content;
   };
 
-  // Only count characters if content is not empty or placeholder
-  const characterCount = content && content !== 'Type here...' ? content.length : 0;
+  const characterCount = content.length;
   const isRemoteEditing = note.editingBy && note.editingBy !== websocketService.getUserId();
 
   // Handle keyboard shortcuts for note
@@ -745,9 +764,7 @@ const Note: React.FC<NoteProps> = ({ note }) => {
                 onFocus={handleContentFocus}
                 onClick={(e) => e.stopPropagation()}
                 className={styles.editableContent}
-              >
-                {content || 'Type here...'}
-              </div>
+              />
               
               {/* Character count */}
               <div className={styles.characterCount}>
