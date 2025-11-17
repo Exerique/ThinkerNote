@@ -97,14 +97,16 @@ const Note: React.FC<NoteProps> = ({ note }) => {
 
 
 
+  // Auto-resize textarea to fit content
   useEffect(() => {
-    if (!isExpanded) return;
-    if (!textareaRef.current) return;
+    if (!isExpanded || !isEditing) return;
+    if (!contentEditableRef.current) return;
+    if (!(contentEditableRef.current instanceof HTMLTextAreaElement)) return;
 
-    const textarea = textareaRef.current;
+    const textarea = contentEditableRef.current;
     textarea.style.height = 'auto';
     textarea.style.height = `${Math.max(textarea.scrollHeight, 60)}px`;
-  }, [content, isExpanded]);
+  }, [content, isExpanded, isEditing]);
 
   // Sync expanded state
   useEffect(() => {
@@ -321,7 +323,7 @@ const Note: React.FC<NoteProps> = ({ note }) => {
       if (newContent !== note.content) {
         sendUpdateNote({
           noteId: note.id,
-          updates: { content: value },
+          updates: { content: newContent },
         });
       }
     }, 500);
