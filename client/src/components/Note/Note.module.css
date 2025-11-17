@@ -151,9 +151,31 @@
   color: inherit;
   outline: none;
   white-space: pre-wrap;
+  cursor: text;
+  position: relative;
 }
 
-.textarea::placeholder {
+/* Textarea-specific styling for seamless editing */
+.editableContent:is(textarea) {
+  width: 100%;
+  resize: none;
+  border: 0;
+  background: transparent;
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+  color: inherit;
+  padding: 0;
+  margin: 0;
+}
+
+.editableContent:is(textarea)::placeholder {
+  color: rgba(29, 29, 31, 0.4);
+}
+
+/* Preview div styling */
+.editableContent:is(div):empty:before {
+  content: attr(data-placeholder);
   color: rgba(29, 29, 31, 0.4);
 }
 

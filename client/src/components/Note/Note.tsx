@@ -63,7 +63,7 @@ const Note: React.FC<NoteProps> = ({ note }) => {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [draggingStickerId, setDraggingStickerId] = useState<string | null>(null);
   const [stickerDragStart, setStickerDragStart] = useState({ x: 0, y: 0 });
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const contentEditableRef = useRef<HTMLTextAreaElement | HTMLDivElement>(null);
   const noteRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
@@ -95,12 +95,7 @@ const Note: React.FC<NoteProps> = ({ note }) => {
     }
   }, [note.x, note.y, isDragging, position.x, position.y]);
 
-  // Sync content with prop changes
-  useEffect(() => {
-    if (!isEditing) {
-      setContent(note.content);
-    }
-  }, [note.content, isEditing]);
+
 
   useEffect(() => {
     if (!isExpanded) return;
@@ -305,15 +300,25 @@ const Note: React.FC<NoteProps> = ({ note }) => {
     };
   }, [isDragging, dragStart, position, note.id, sendMoveNote, applyMomentum, setNoteStatic, setNotePosition]);
 
-  const handleContentChange = useCallback((value: string) => {
-    setContent(value);
+  // Sync content with prop changes (only when not editing)
+  useEffect(() => {
+    if (!isEditing) {
+      setContent(note.content);
+    }
+  }, [note.content, isEditing]);
 
+  const handleContentChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const newContent = e.target.value;
+    // Keep local state in sync while editing
+    setContent(newContent);
+
+    // Debounce content updates (500ms) for real-time collaboration
     if (contentUpdateTimeoutRef.current) {
       clearTimeout(contentUpdateTimeoutRef.current);
     }
 
     contentUpdateTimeoutRef.current = setTimeout(() => {
-      if (value !== note.content) {
+      if (newContent !== note.content) {
         sendUpdateNote({
           noteId: note.id,
           updates: { content: value },
@@ -325,19 +330,15 @@ const Note: React.FC<NoteProps> = ({ note }) => {
   const handleContentBlur = useCallback(() => {
     setIsEditing(false);
     sendEditingEnd(note.id);
-
-    if (contentUpdateTimeoutRef.current) {
-      clearTimeout(contentUpdateTimeoutRef.current);
-      contentUpdateTimeoutRef.current = null;
-    }
-
+    
+    // Send final update on blur
     if (content !== note.content) {
       sendUpdateNote({
         noteId: note.id,
         updates: { content },
       });
     }
-  }, [content, note.content, note.id, sendEditingEnd, sendUpdateNote]);
+  }, [content, note.content, note.id, sendUpdateNote, sendEditingEnd]);
 
   const handleContentFocus = useCallback(() => {
     setIsEditing(true);
@@ -740,18 +741,36 @@ const Note: React.FC<NoteProps> = ({ note }) => {
         >
           {isExpanded ? (
             <>
-              <textarea
-                ref={textareaRef}
-                value={content}
-                onChange={(e) => handleContentChange(e.target.value)}
-                onBlur={handleContentBlur}
-                onFocus={handleContentFocus}
-                onClick={(e) => e.stopPropagation()}
-                className={styles.textarea}
-                placeholder="Type here..."
-                aria-label="Note content"
-                rows={1}
-              />
+              {isEditing ? (
+                <textarea
+                  ref={contentEditableRef as React.RefObject<HTMLTextAreaElement>}
+                  value={content}
+                  onChange={handleContentChange}
+                  onBlur={handleContentBlur}
+                  onFocus={handleContentFocus}
+                  onClick={(e) => e.stopPropagation()}
+                  className={styles.editableContent}
+                  placeholder="Type here..."
+                  aria-label="Note content"
+                  autoFocus
+                />
+              ) : (
+                <div
+                  ref={contentEditableRef as React.RefObject<HTMLDivElement>}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsEditing(true);
+                    sendEditingStart(note.id);
+                  }}
+                  className={styles.editableContent}
+                  data-placeholder="Type here..."
+                  role="textbox"
+                  aria-multiline="true"
+                  tabIndex={0}
+                >
+                  {content}
+                </div>
+              )}
               
               {/* Character count */}
               <div className={styles.characterCount}>
