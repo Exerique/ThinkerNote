@@ -63,7 +63,7 @@ const Note: React.FC<NoteProps> = ({ note }) => {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [draggingStickerId, setDraggingStickerId] = useState<string | null>(null);
   const [stickerDragStart, setStickerDragStart] = useState({ x: 0, y: 0 });
-  const contentEditableRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const noteRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
@@ -102,6 +102,15 @@ const Note: React.FC<NoteProps> = ({ note }) => {
     }
   }, [note.content, isEditing]);
 
+  useEffect(() => {
+    if (!isExpanded) return;
+    if (!textareaRef.current) return;
+
+    const textarea = textareaRef.current;
+    textarea.style.height = 'auto';
+    textarea.style.height = `${Math.max(textarea.scrollHeight, 60)}px`;
+  }, [content, isExpanded]);
+
   // Sync expanded state
   useEffect(() => {
     setIsExpanded(note.isExpanded);
@@ -113,6 +122,7 @@ const Note: React.FC<NoteProps> = ({ note }) => {
     if (
       target.closest('button') ||
       target.closest('[contenteditable]') ||
+      target.closest('textarea') ||
       target.closest('input') ||
       target.closest(`.${styles.customizationPanel}`) ||
       target.closest(`.${styles.stickerLibrary}`)
@@ -134,6 +144,7 @@ const Note: React.FC<NoteProps> = ({ note }) => {
     if (
       target.closest('button') ||
       target.closest('[contenteditable]') ||
+      target.closest('textarea') ||
       target.closest('input') ||
       target.closest(`.${styles.customizationPanel}`) ||
       target.closest(`.${styles.stickerLibrary}`)
@@ -294,45 +305,39 @@ const Note: React.FC<NoteProps> = ({ note }) => {
     };
   }, [isDragging, dragStart, position, note.id, sendMoveNote, applyMomentum, setNoteStatic, setNotePosition]);
 
-  const handleContentChange = useCallback(() => {
-    if (contentEditableRef.current) {
-      // Use textContent for plain text to prevent XSS
-      const newContent = contentEditableRef.current.textContent || '';
-      // Don't update local state during typing - it causes cursor jumps
-      // setContent(newContent);
-      
-      // Debounce content updates (500ms) for real-time collaboration
-      if (contentUpdateTimeoutRef.current) {
-        clearTimeout(contentUpdateTimeoutRef.current);
-      }
-      
-      contentUpdateTimeoutRef.current = setTimeout(() => {
-        if (newContent !== note.content) {
-          sendUpdateNote({
-            noteId: note.id,
-            updates: { content: newContent },
-          });
-        }
-      }, 500);
+  const handleContentChange = useCallback((value: string) => {
+    setContent(value);
+
+    if (contentUpdateTimeoutRef.current) {
+      clearTimeout(contentUpdateTimeoutRef.current);
     }
+
+    contentUpdateTimeoutRef.current = setTimeout(() => {
+      if (value !== note.content) {
+        sendUpdateNote({
+          noteId: note.id,
+          updates: { content: value },
+        });
+      }
+    }, 500);
   }, [note.content, note.id, sendUpdateNote]);
 
   const handleContentBlur = useCallback(() => {
     setIsEditing(false);
     sendEditingEnd(note.id);
-    if (contentEditableRef.current) {
-      // Use textContent for plain text to prevent XSS
-      const newContent = contentEditableRef.current.textContent || '';
-      // Update local state on blur
-      setContent(newContent);
-      if (newContent !== note.content) {
-        sendUpdateNote({
-          noteId: note.id,
-          updates: { content: newContent },
-        });
-      }
+
+    if (contentUpdateTimeoutRef.current) {
+      clearTimeout(contentUpdateTimeoutRef.current);
+      contentUpdateTimeoutRef.current = null;
     }
-  }, [note.content, note.id, sendUpdateNote, sendEditingEnd]);
+
+    if (content !== note.content) {
+      sendUpdateNote({
+        noteId: note.id,
+        updates: { content },
+      });
+    }
+  }, [content, note.content, note.id, sendEditingEnd, sendUpdateNote]);
 
   const handleContentFocus = useCallback(() => {
     setIsEditing(true);
@@ -589,8 +594,7 @@ const Note: React.FC<NoteProps> = ({ note }) => {
     return content.length > 50 ? content.substring(0, 50) + '...' : content;
   };
 
-  // Only count characters if content is not empty or placeholder
-  const characterCount = content && content !== 'Type here...' ? content.length : 0;
+  const characterCount = content.length;
   const isRemoteEditing = note.editingBy && note.editingBy !== websocketService.getUserId();
 
   // Handle keyboard shortcuts for note
@@ -736,18 +740,18 @@ const Note: React.FC<NoteProps> = ({ note }) => {
         >
           {isExpanded ? (
             <>
-              <div
-                ref={contentEditableRef}
-                contentEditable
-                suppressContentEditableWarning
-                onInput={handleContentChange}
+              <textarea
+                ref={textareaRef}
+                value={content}
+                onChange={(e) => handleContentChange(e.target.value)}
                 onBlur={handleContentBlur}
                 onFocus={handleContentFocus}
                 onClick={(e) => e.stopPropagation()}
-                className={styles.editableContent}
-              >
-                {content || 'Type here...'}
-              </div>
+                className={styles.textarea}
+                placeholder="Type here..."
+                aria-label="Note content"
+                rows={1}
+              />
               
               {/* Character count */}
               <div className={styles.characterCount}>

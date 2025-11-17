@@ -139,15 +139,21 @@
   cursor: pointer;
 }
 
-.editableContent {
-  outline: none;
+.textarea {
+  width: 100%;
   min-height: 60px;
+  border: none;
+  background: transparent;
+  resize: none;
+  padding: 0;
+  font: inherit;
+  line-height: inherit;
+  color: inherit;
+  outline: none;
   white-space: pre-wrap;
-  cursor: text;
 }
 
-.editableContent:empty:before {
-  content: 'Type here...';
+.textarea::placeholder {
   color: rgba(29, 29, 31, 0.4);
 }
 
