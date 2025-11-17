@@ -55,11 +55,12 @@ setupAPIRoutes(app, stateManager);
 // Setup WebSocket handlers
 setupWebSocketHandlers(io, stateManager);
 
-// Configure port
+// Configure port and host
 const PORT = parseInt(process.env.PORT || '3001', 10);
+const HOST = process.env.HOST || '0.0.0.0'; // Listen on all network interfaces
 
-httpServer.listen(PORT, () => {
-  logger.info(`Server running on port ${PORT}`, 'Startup');
+httpServer.listen(PORT, HOST, () => {
+  logger.info(`Server running on ${HOST}:${PORT}`, 'Startup');
   logger.info(`Health check: http://localhost:${PORT}/health`, 'Startup');
   logger.info('WebSocket server ready', 'Startup');
 });
