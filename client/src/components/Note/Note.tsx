@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback, useLayoutEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Note as NoteType, Sticker } from '../../../../shared/src/types';
 import { useWebSocket } from '../../contexts/WebSocketContext';
@@ -63,7 +63,7 @@ const Note: React.FC<NoteProps> = ({ note }) => {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [draggingStickerId, setDraggingStickerId] = useState<string | null>(null);
   const [stickerDragStart, setStickerDragStart] = useState({ x: 0, y: 0 });
-  const contentEditableRef = useRef<HTMLDivElement>(null);
+  const contentEditableRef = useRef<HTMLTextAreaElement | HTMLDivElement>(null);
   const noteRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
@@ -95,16 +95,7 @@ const Note: React.FC<NoteProps> = ({ note }) => {
     }
   }, [note.x, note.y, isDragging, position.x, position.y]);
 
-  // Sync content with prop changes (only when not editing)
-  useEffect(() => {
-    if (!isEditing && contentEditableRef.current) {
-      // Only update if content actually changed and we're not editing
-      if (contentEditableRef.current.textContent !== note.content) {
-        contentEditableRef.current.textContent = note.content;
-        setContent(note.content);
-      }
-    }
-  }, [note.content, isEditing]);
+
 
   // Sync expanded state
   useEffect(() => {
@@ -298,70 +289,50 @@ const Note: React.FC<NoteProps> = ({ note }) => {
     };
   }, [isDragging, dragStart, position, note.id, sendMoveNote, applyMomentum, setNoteStatic, setNotePosition]);
 
-  const syncContentEditable = useCallback(() => {
-    const editable = contentEditableRef.current;
-    if (!editable) return;
-
-    if (editable.textContent !== content) {
-      editable.textContent = content;
+  // Sync content with prop changes (only when not editing)
+  useEffect(() => {
+    if (!isEditing) {
+      setContent(note.content);
     }
-  }, [content]);
+  }, [note.content, isEditing]);
 
-  // Keep the DOM contentEditable text in sync with React state when not editing
-  useLayoutEffect(() => {
-    if (isEditing) {
-      return;
+  const handleContentChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const newContent = e.target.value;
+    // Keep local state in sync while editing
+    setContent(newContent);
+
+    // Debounce content updates (500ms) for real-time collaboration
+    if (contentUpdateTimeoutRef.current) {
+      clearTimeout(contentUpdateTimeoutRef.current);
     }
 
-    syncContentEditable();
-  }, [content, isEditing, syncContentEditable]);
-
-  const handleContentChange = useCallback(() => {
-    if (contentEditableRef.current) {
-      // Use textContent for plain text to prevent XSS
-      const newContent = contentEditableRef.current.textContent || '';
-      // Keep local state in sync while editing so React re-renders don't wipe the text
-      setContent(newContent);
-
-      // Debounce content updates (500ms) for real-time collaboration
-      if (contentUpdateTimeoutRef.current) {
-        clearTimeout(contentUpdateTimeoutRef.current);
-      }
-
-      contentUpdateTimeoutRef.current = setTimeout(() => {
-        if (newContent !== note.content) {
-          sendUpdateNote({
-            noteId: note.id,
-            updates: { content: newContent },
-          });
-        }
-      }, 500);
-    }
-  }, [note.content, note.id, sendUpdateNote]);
-
-  const handleContentBlur = useCallback(() => {
-    setIsEditing(false);
-    sendEditingEnd(note.id);
-    if (contentEditableRef.current) {
-      // Use textContent for plain text to prevent XSS
-      const newContent = contentEditableRef.current.textContent || '';
-      // Update local state on blur
-      setContent(newContent);
+    contentUpdateTimeoutRef.current = setTimeout(() => {
       if (newContent !== note.content) {
         sendUpdateNote({
           noteId: note.id,
           updates: { content: newContent },
         });
       }
+    }, 500);
+  }, [note.content, note.id, sendUpdateNote]);
+
+  const handleContentBlur = useCallback(() => {
+    setIsEditing(false);
+    sendEditingEnd(note.id);
+    
+    // Send final update on blur
+    if (content !== note.content) {
+      sendUpdateNote({
+        noteId: note.id,
+        updates: { content },
+      });
     }
-  }, [note.content, note.id, sendUpdateNote, sendEditingEnd]);
+  }, [content, note.content, note.id, sendUpdateNote, sendEditingEnd]);
 
   const handleContentFocus = useCallback(() => {
-    // Ensure DOM content matches buffered state before the user starts typing
-    syncContentEditable();
     setIsEditing(true);
     sendEditingStart(note.id);
-  }, [note.id, sendEditingStart, syncContentEditable]);
+  }, [note.id, sendEditingStart]);
 
   const handleDelete = useCallback(() => {
     setShowDeleteConfirm(true);
@@ -759,26 +730,36 @@ const Note: React.FC<NoteProps> = ({ note }) => {
         >
           {isExpanded ? (
             <>
-              <div
-                ref={contentEditableRef}
-                contentEditable="true"
-                suppressContentEditableWarning
-                onInput={handleContentChange}
-                onBlur={handleContentBlur}
-                onFocus={handleContentFocus}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  // Ensure focus on click
-                  if (contentEditableRef.current) {
-                    contentEditableRef.current.focus();
-                  }
-                }}
-                className={styles.editableContent}
-                data-placeholder="Type here..."
-                role="textbox"
-                aria-multiline="true"
-                dangerouslySetInnerHTML={{ __html: content }}
-              />
+              {isEditing ? (
+                <textarea
+                  ref={contentEditableRef as React.RefObject<HTMLTextAreaElement>}
+                  value={content}
+                  onChange={handleContentChange}
+                  onBlur={handleContentBlur}
+                  onFocus={handleContentFocus}
+                  onClick={(e) => e.stopPropagation()}
+                  className={styles.editableContent}
+                  placeholder="Type here..."
+                  aria-label="Note content"
+                  autoFocus
+                />
+              ) : (
+                <div
+                  ref={contentEditableRef as React.RefObject<HTMLDivElement>}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsEditing(true);
+                    sendEditingStart(note.id);
+                  }}
+                  className={styles.editableContent}
+                  data-placeholder="Type here..."
+                  role="textbox"
+                  aria-multiline="true"
+                  tabIndex={0}
+                >
+                  {content}
+                </div>
+              )}
               
               {/* Character count */}
               <div className={styles.characterCount}>
