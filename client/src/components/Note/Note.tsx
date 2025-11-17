@@ -97,6 +97,15 @@ const Note: React.FC<NoteProps> = ({ note }) => {
 
 
 
+  useEffect(() => {
+    if (!isExpanded) return;
+    if (!textareaRef.current) return;
+
+    const textarea = textareaRef.current;
+    textarea.style.height = 'auto';
+    textarea.style.height = `${Math.max(textarea.scrollHeight, 60)}px`;
+  }, [content, isExpanded]);
+
   // Sync expanded state
   useEffect(() => {
     setIsExpanded(note.isExpanded);
@@ -108,6 +117,7 @@ const Note: React.FC<NoteProps> = ({ note }) => {
     if (
       target.closest('button') ||
       target.closest('[contenteditable]') ||
+      target.closest('textarea') ||
       target.closest('input') ||
       target.closest(`.${styles.customizationPanel}`) ||
       target.closest(`.${styles.stickerLibrary}`)
@@ -129,6 +139,7 @@ const Note: React.FC<NoteProps> = ({ note }) => {
     if (
       target.closest('button') ||
       target.closest('[contenteditable]') ||
+      target.closest('textarea') ||
       target.closest('input') ||
       target.closest(`.${styles.customizationPanel}`) ||
       target.closest(`.${styles.stickerLibrary}`)
@@ -310,7 +321,7 @@ const Note: React.FC<NoteProps> = ({ note }) => {
       if (newContent !== note.content) {
         sendUpdateNote({
           noteId: note.id,
-          updates: { content: newContent },
+          updates: { content: value },
         });
       }
     }, 500);
